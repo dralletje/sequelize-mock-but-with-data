@@ -1,0 +1,19 @@
+{
+  "name": "sequelize-mock-but-with-data",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/sequelize.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "immer": "^1.10.5",
+    "inflection": "^1.12.0",
+    "lodash": "^4.17.11"
+  },
+  "devDependencies": {
+    "jest": "^23.6.0"
+  }
+}

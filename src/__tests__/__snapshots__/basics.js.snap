@@ -1,0 +1,13 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`should work with simple insert 1`] = `
+Object {
+  "__table_name__": "User",
+  "age": 22,
+  "createdAt": 2019-01-16T17:34:47.828Z,
+  "email": "m.c.dral@gmail.com",
+  "name": "Michiel Dral",
+  "updatedAt": 2019-01-16T17:34:47.828Z,
+  "verified": true,
+}
+`;
