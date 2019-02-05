@@ -1,13 +1,163 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`User.sync({ force: true }) will clear database 1`] = `Object {}`;
+
+exports[`sequelize.sync({ force: true }) will clear database 1`] = `Object {}`;
+
+exports[`should remove a selection of users 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "13",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`should remove a specific user 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "5",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "6",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`should update a selection of users 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 23,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "8",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 23,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "9",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "10",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`should update a specific user 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "2",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "3",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 25,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "4",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
 exports[`should work with simple insert 1`] = `
 Object {
   "__table_name__": "User",
   "age": 22,
-  "createdAt": 2019-01-16T17:34:47.828Z,
+  "createdAt": 2016-01-01T00:00:00.000Z,
   "email": "m.c.dral@gmail.com",
+  "id": "1",
   "name": "Michiel Dral",
-  "updatedAt": 2019-01-16T17:34:47.828Z,
+  "updatedAt": 2016-01-01T00:00:00.000Z,
   "verified": true,
+}
+`;
+
+exports[`sync will do nothing 1`] = `
+Object {
+  "0": Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "14",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  "1": Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "15",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  "2": Object {
+    "__table_name__": "User",
+    "age": 24,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "16",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
 }
 `;

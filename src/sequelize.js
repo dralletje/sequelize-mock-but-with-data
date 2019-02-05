@@ -3,7 +3,9 @@ let inflection = require("inflection");
 let { upperFirst, mapValues, isEmpty, orderBy, isMatch, fromPairs, escapeRegExp } = require('lodash');
 let util = require("util");
 let immer = require("immer").default;
+let { EventEmitter } = require("events");
 
+let Object_Reference = Symbol("Reference to the object for internal reference");
 let next_id_counter = 0;
 let Shallow = Symbol("Shallow type");
 let Datatypes = {
@@ -163,7 +165,8 @@ let precondition = (condition, message) => {
 class DefaultModel {
   constructor(dataValues, collection) {
     this.collection = collection;
-    this.dataValues = dataValues;
+    this.dataValues = { ...dataValues };
+    this[Object_Reference] = dataValues;
 
     Object.assign(this, dataValues);
   }
@@ -359,7 +362,12 @@ let does_match_where = (item, where, fields) => {
 };
 
 class Collection {
-  constructor({ name, fields, options: { indexes, ...options } = {}, base }) {
+  constructor({
+    name,
+    fields,
+    options: { indexes, ...options } = {},
+    database,
+  }) {
     // prettier-ignore
     precondition(isEmpty(options), `WIP: Options not yet... understood (${JSON.stringify(options)})`);
 
@@ -367,7 +375,11 @@ class Collection {
     // indexes
 
     this.name = name;
-    this.base = base;
+    if (database.mock == null) {
+      console.log(`database:`, database.mock);
+    }
+
+    this.base = database;
     this.singular = upperFirst(inflection.singularize(name));
     this.plural = upperFirst(inflection.pluralize(name));
     this.fields = {
@@ -404,6 +416,7 @@ class Collection {
 
   async sync({ force = false } = {}) {
     if (force === true) {
+      this.__;
       this.database = [];
     }
     return true;
@@ -443,15 +456,21 @@ class Collection {
     }
   }
 
+  __emit(mutation) {
+    this.base.mock.emit('mutation', {
+      ...mutation,
+      collection_name: this.name,
+    });
+  }
+
   async __get_item(
-    _dataValues,
+    dataValues,
     { include: models_to_include = [], transaction } = {}
   ) {
-    if (_dataValues == null) {
+    if (dataValues == null) {
       return null;
     }
 
-    let dataValues = { ..._dataValues };
     let instance = new this.Model_Class(dataValues, this);
     for (let include of models_to_include) {
       if (include.as) {
@@ -534,19 +553,35 @@ class Collection {
     object.createdAt = object.createdAt || new Date();
     object.updatedAt = object.updatedAt || new Date();
 
+    this.__emit({
+      type: 'create',
+      item: object,
+    });
     this.database.push(object);
     return await this.__get_item(object);
   }
 
-  async destroy({ where, transaction }) {
+  async destroy({ where, transaction } = {}) {
     let initial_length = this.database.length;
-    this.database = this.database.filter((item) => {
-      return !does_match_where(item, where, this.fields);
+    let items_to_remove = await this.findAll({
+      where: where,
+      transaction: transaction,
     });
+    this.database = this.database.filter((item) => {
+      return (
+        items_to_remove.find((to_remove) => {
+          return to_remove[Object_Reference] === item;
+        }) == null
+      );
+    });
+    this.__emit({
+      type: 'destroy',
+      items: items_to_remove.map(x => x.dataValues),
+    })
     return initial_length - this.database.length;
   }
 
-  async update(updateValues, { where, transaction }) {
+  async update(updateValues, { where, transaction } = {}) {
     // TODO Implement check on `updateValues` to know the values exist
     let updated_rows = [];
     this.database = this.database.map((item) => {
@@ -582,6 +617,12 @@ class Collection {
       } else {
         return item;
       }
+    });
+
+    this.__emit({
+      type: 'update',
+      items_to_update: updated_rows,
+      change: updateValues,
     });
 
     return [updated_rows.length, updated_rows];
@@ -833,12 +874,12 @@ class Collection {
     let throughCollection = null;
 
     // Create or find the proxy collection
-    let found = [...this.base.definitions].find(
+    let found = [...this.database.definitions].find(
       ([key, x]) =>
         typeof through === "string" ? x.name === through : x === through
     );
     if (found == null) {
-      throughCollection = this.base.define(through, {
+      throughCollection = this.database.define(through, {
         [`${this.singular}Id`]: this.fields.id.type,
         [`${foreignCollection.singular}Id`]: foreignCollection.fields.id.type,
       });
@@ -898,6 +939,8 @@ class Transaction {
   async rollback() {}
 }
 
+class SequelizeMockExtension extends EventEmitter {}
+
 class Sequelize {
   constructor(url, ...args) {
     // TODO Ugly and hacky >_>
@@ -906,6 +949,7 @@ class Sequelize {
     }
 
     this.__isMock = true;
+    this.mock = new SequelizeMockExtension();
 
     // 'definition' for when we are defining the models
     // 'database' as soon as data gets accessed, and we disallow changes in
@@ -928,29 +972,19 @@ class Sequelize {
   define(name, fields, options) {
     // prettier-ignore
     precondition(this.mode === 'definition', `Can't add model because database is in ${this.mode} mode`);
-
-    // TODO Dirty fix
-    // precondition(
-    //   !this.definitions.has(name),
-    //   `Model '${name}' already defined`
-    // );
-    // TODO This is so ugly and hacky
-    let previous_definition = this.definitions.get(name);
+    // prettier-ignore
+    precondition(!this.definitions.has(name), `Model '${name}' already defined`);
 
     let collection = new Collection({
       name: name,
       fields: fields,
       options: options,
-      base: this,
+      database: this,
     });
-
-    // TODO This is so ugly and hacky
-    if (previous_definition) {
-      collection.database = previous_definition.database;
-    }
 
     this.definitions.set(name, collection);
     this.data.set(name, []);
+
     return collection;
   }
 
@@ -960,7 +994,10 @@ class Sequelize {
   async sync({ force = false } = {}) {
     if (force === true) {
       // prettier-ignore
-      throw new Error(`.sync({ force: true }) not yet supported for the whole database`);
+      next_id_counter = 0;
+      for (let [key, value] of this.definitions) {
+        await value.destroy();
+      }
     }
     return true;
   }
@@ -969,11 +1006,9 @@ class Sequelize {
     return new Transaction();
   }
 
+  // TODO Remove this
   async flush() {
-    next_id_counter = 0;
-    for (let [key, value] of this.definitions) {
-      value.database = [];
-    }
+    await this.sync({ force: true });
   }
 
   getQueryInterface() {
@@ -981,11 +1016,12 @@ class Sequelize {
   }
 
   isDefined(table) {
+    // NOTE Dirty fix for migrations
     if (table === "SequelizeMeta") {
       return true;
-    } else {
-      return this.definitions.has(table);
     }
+
+    return this.definitions.has(table);
   }
 }
 
