@@ -500,6 +500,7 @@ class Collection {
         precondition(valid_getter_suffix.length === 1, `Multiple relations defined for model '${include.model.name}'`);
         let getter_suffix = valid_getter_suffix[0];
 
+
         await instance[`get${getter_suffix}`]({
           include: include.include,
           where: include.where,
@@ -582,6 +583,8 @@ class Collection {
   }
 
   async update(updateValues, { where, transaction } = {}) {
+    precondition(where != null, `You can't specify an update without a where clause`);
+
     // TODO Implement check on `updateValues` to know the values exist
     let updated_rows = [];
     this.database = this.database.map((item) => {
@@ -619,13 +622,28 @@ class Collection {
       }
     });
 
-    this.__emit({
-      type: 'update',
-      items_to_update: updated_rows,
-      change: updateValues,
-    });
+    if (updated_rows.length !== 0) {
+      this.__emit({
+        type: 'update',
+        items_to_update: updated_rows.map(x => this._identifier(x)),
+        change: updateValues,
+      });
+    }
 
     return [updated_rows.length, updated_rows];
+  }
+
+  _identifier(item) {
+    let fields = Object.entries(this.fields);
+
+    let primary_key = fields.find(([key, type]) => type.primaryKey === true);
+    if (primary_key != null) {
+      let key = primary_key[0];
+      return { [key]: item[key] }
+    }
+
+    // TODO Look for unique indexes?
+    return item;
   }
 
   async upsert(updateValues, { transaction, returning }) {
@@ -874,12 +892,18 @@ class Collection {
     let throughCollection = null;
 
     // Create or find the proxy collection
-    let found = [...this.database.definitions].find(
-      ([key, x]) =>
-        typeof through === "string" ? x.name === through : x === through
+    let found = [...this.base.definitions].find(
+      ([key, x]) => {
+        if (typeof through === "string") {
+          return x.plural === through;
+        } else {
+          return x === through;
+        }
+      }
     );
+
     if (found == null) {
-      throughCollection = this.database.define(through, {
+      throughCollection = this.base.define(through, {
         [`${this.singular}Id`]: this.fields.id.type,
         [`${foreignCollection.singular}Id`]: foreignCollection.fields.id.type,
       });
@@ -911,7 +935,7 @@ class Collection {
 
       let other_ids = await throughCollection.findAll({
         where: {
-          [`${this.singular}Id`]: this.dataValues.id,
+          [`${this.collection.singular}Id`]: this.dataValues.id,
         },
         transaction,
       });
@@ -920,7 +944,7 @@ class Collection {
         return await foreignCollection.findOne({
           where: {
             ...where,
-            id: id,
+            id: id.id,
           },
           transaction,
           include,

@@ -81,6 +81,8 @@ it("should record update operation", async () => {
 
   await Item.update({
     description: 'Some other description',
+  }, {
+    where: {},
   });
 
   expect(mutations).toEqual([
