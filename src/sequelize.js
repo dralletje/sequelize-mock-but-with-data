@@ -203,6 +203,9 @@ let generate_like_regex = (pattern) => {
   );
 };
 
+// { count: 10, age: { [Op.lt]: 18 } }
+// - special_matchers(item.count, 10)
+// - special_matchers(item.age, { [Op.iLike]: 18 })
 let special_matchers = (item, matchobject) => {
   if (typeof matchobject !== "object") {
     return item === matchobject;
@@ -251,6 +254,8 @@ let special_matchers = (item, matchobject) => {
       precondition(Array.isArray(array), `Op.contains without array inside.. not sure what to do`);
       // prettier-ignore
       precondition(array.length === 1, `Op.contains needs an array with one element, for now`);
+
+      // TODO make sure that item *has* to be an array, and can't be null
       // prettier-ignore
       precondition(Array.isArray(item), `Op.contains can not be applied to a non-array`);
 
@@ -283,10 +288,18 @@ let special_matchers = (item, matchobject) => {
       return lowerbound < item && item < upperbound;
     }
     if (symbol === Sequelize.Op.iLike) {
+      if (item == null) {
+        return false;
+      }
+
       let ilike_pattern = matchobject[Sequelize.Op.iLike].toLowerCase();
       return generate_like_regex(ilike_pattern).test(item.toLowerCase());
     }
     if (symbol === Sequelize.Op.like) {
+      if (item == null) {
+        return false;
+      }
+
       let like_pattern = matchobject[Sequelize.Op.like];
       return generate_like_regex(like_pattern).test(item);
     }
@@ -295,6 +308,11 @@ let special_matchers = (item, matchobject) => {
   });
 };
 
+// [] => []
+// [1, 2, 3] => [1, 2, 3]
+// {} => []
+// { key: 'value' } => [{ key: 'value' }]
+// { key1: 'value', key2: 'value' } => [{ key1: 'value' }, { key2: 'value' }];
 let arrayisze_object = (array_or_object) => {
   if (Array.isArray(array_or_object)) {
     return array_or_object;
