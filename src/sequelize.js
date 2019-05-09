@@ -1,56 +1,56 @@
-let inflection = require('inflection');
+let inflection = require("inflection");
 // prettier-ignore
 let { upperFirst, mapValues, isEmpty, orderBy, isMatch, fromPairs, escapeRegExp } = require('lodash');
-let util = require('util');
-let immer = require('immer').default;
-let { EventEmitter } = require('events');
+let util = require("util");
+let immer = require("immer").default;
+let { EventEmitter } = require("events");
 
-let Object_Reference = Symbol('Reference to the object for internal reference');
+let Object_Reference = Symbol("Reference to the object for internal reference");
 let next_id_counter = 0;
-let Shallow = Symbol('Shallow type');
+let Shallow = Symbol("Shallow type");
 let Datatypes = {
   STRING: {
     [Shallow]: true,
-    name: 'STRING',
+    name: "STRING",
     cast: x => {
       return String(x);
-    },
+    }
   },
   TEXT: {
     [Shallow]: true,
-    name: 'TEXT',
+    name: "TEXT",
     cast: x => {
       return String(x);
-    },
+    }
   },
   BOOLEAN: {
     [Shallow]: true,
-    name: 'BOOLEAN',
+    name: "BOOLEAN",
     cast: x => {
       return Boolean(x);
-    },
+    }
   },
   JSON: {
     [Shallow]: true,
-    name: 'JSON',
+    name: "JSON"
     // cast?
   },
   JSONB: {
     [Shallow]: true,
-    name: 'JSONB',
+    name: "JSONB"
     // cast?
   },
   UUID: {
     [Shallow]: true,
-    name: 'UUID',
+    name: "UUID",
     cast: x => {
       // COULD also do uuid conversion here but honestly... honestly?!
       return String(x);
-    },
+    }
   },
   UUIDV4: {
     [Shallow]: true,
-    name: 'UUIDV4',
+    name: "UUIDV4",
     create_default: () => {
       next_id_counter = next_id_counter + 1;
       // Generate a UUID like just for the feelz
@@ -62,22 +62,22 @@ let Datatypes = {
     },
     cast: x => {
       return String(x);
-    },
+    }
   },
   NOW: {
     [Shallow]: true,
-    name: 'NOW',
+    name: "NOW",
     create_default: () => {
       return Date.now();
     },
     cast: x => {
       // prettier-ignore
       throw new Error(`Sequelize.NOW is not usable as type`);
-    },
+    }
   },
   INTEGER: {
     [Shallow]: true,
-    name: 'INTEGER',
+    name: "INTEGER",
     cast: x => {
       // prettier-ignore
       precondition(x !== '', `Tried to use an empty string as INTEGER`);
@@ -88,11 +88,11 @@ let Datatypes = {
       precondition(Number.isInteger(result), `Tried to use '${x}' as INTEGER, but it aint (${result})`);
 
       return result;
-    },
+    }
   },
   DECIMAL: {
     [Shallow]: true,
-    name: 'DECIMAL',
+    name: "DECIMAL",
     cast: x => {
       // prettier-ignore
       precondition(x !== '', `Tried to use an empty string as DECIMAL`);
@@ -103,33 +103,33 @@ let Datatypes = {
       precondition(Number.isFinite(result), `Tried to use '${x}' as DECIMAL, but it aint (${result})`);
 
       return result;
-    },
+    }
   },
   DATE: {
     [Shallow]: true,
-    name: 'DATE',
+    name: "DATE",
     cast: x => {
       return new Date(x);
-    },
+    }
   },
   ENUM: {
     [Shallow]: true,
-    name: 'ENUM',
+    name: "ENUM"
     // cast?
   },
   BLOB: {
     [Shallow]: true,
-    name: 'BLOB',
-  },
+    name: "BLOB"
+  }
 };
 
 let create_default = definition => {
-  if (typeof definition.defaultValue === 'function') {
+  if (typeof definition.defaultValue === "function") {
     return definition.defaultValue();
   }
   if (
     definition.defaultValue &&
-    typeof definition.defaultValue.create_default === 'function'
+    typeof definition.defaultValue.create_default === "function"
   ) {
     return definition.defaultValue.create_default();
   }
@@ -174,14 +174,14 @@ class DefaultModel {
   [util.inspect.custom]() {
     return {
       __table_name__: this.collection.name,
-      ...this.dataValues,
+      ...this.dataValues
     };
   }
 
   toJSON() {
     return {
       __table_name__: this.collection.name,
-      ...this.dataValues,
+      ...this.dataValues
     };
   }
 
@@ -198,13 +198,13 @@ class DefaultModel {
 let generate_like_regex = pattern => {
   return new RegExp(
     escapeRegExp(pattern)
-      .replace(/%/g, '.*')
-      .replace(/_/g, '.')
+      .replace(/%/g, ".*")
+      .replace(/_/g, ".")
   );
 };
 
 let special_matchers = (item, matchobject) => {
-  if (typeof matchobject !== 'object') {
+  if (typeof matchobject !== "object") {
     return item === matchobject;
   }
   if (matchobject === null) {
@@ -386,7 +386,7 @@ class Collection {
     this.fields = {
       ...mapValues(fields, (field, key) => {
         return this.__define_field({ field, key });
-      }),
+      })
     };
 
     if (options.timestamps) {
@@ -396,16 +396,16 @@ class Collection {
           primaryKey: false,
           allowNull: false,
           defaultValue: Datatypes.NOW,
-          autoIncrement: null,
+          autoIncrement: null
         },
         createdAt: {
           type: Datatypes.DATE,
           primaryKey: false,
           allowNull: false,
           defaultValue: Datatypes.NOW,
-          autoIncrement: null,
+          autoIncrement: null
         },
-        ...this.fields,
+        ...this.fields
       };
     }
 
@@ -414,15 +414,15 @@ class Collection {
     this.database = [];
 
     this.Model_Class = class Model extends DefaultModel {};
-    Object.defineProperty(this.Model_Class, 'name', {
+    Object.defineProperty(this.Model_Class, "name", {
       configurable: true,
       writable: true,
-      value: `${this.singular}Instance`,
+      value: `${this.singular}Instance`
     });
-    Object.defineProperty(this.Model_Class, 'options', {
+    Object.defineProperty(this.Model_Class, "options", {
       configurable: true,
       writable: true,
-      value: this.options,
+      value: this.options
     });
   }
 
@@ -437,7 +437,7 @@ class Collection {
   [util.inspect.custom]() {
     return {
       name: this.name,
-      items_in_database: this.database.length,
+      items_in_database: this.database.length
       // fields: Object.keys(this.fields),
     };
   }
@@ -455,7 +455,7 @@ class Collection {
         // TODO Quite sure there is no need to explicitly set these...
         // .... But doing it anyway 😎
         defaultValue: null,
-        autoIncrement: null,
+        autoIncrement: null
       };
     } else {
       return {
@@ -463,15 +463,15 @@ class Collection {
         allowNull: true,
         defaultValue: null,
         autoIncrement: null,
-        ...field,
+        ...field
       };
     }
   }
 
   __emit(mutation) {
-    this.base.mock.emit('mutation', {
+    this.base.mock.emit("mutation", {
       ...mutation,
-      collection_name: this.name,
+      collection_name: this.name
     });
   }
 
@@ -494,7 +494,7 @@ class Collection {
         await instance[`get${include.as}`]({
           include: include.include,
           where: include.where,
-          transaction: transaction,
+          transaction: transaction
         });
 
         if (instance[include.as] == null) {
@@ -503,8 +503,8 @@ class Collection {
       } else {
         let valid_getter_suffix = [
           include.model.singular,
-          include.model.plural,
-        ].filter(x => typeof instance[`get${x}`] === 'function');
+          include.model.plural
+        ].filter(x => typeof instance[`get${x}`] === "function");
 
         // prettier-ignore
         precondition(valid_getter_suffix.length !== 0, `No relations defined for '${include.model.name}'`);
@@ -515,7 +515,7 @@ class Collection {
         await instance[`get${getter_suffix}`]({
           include: include.include,
           where: include.where,
-          transaction,
+          transaction
         });
 
         if (instance[getter_suffix] == null) {
@@ -543,7 +543,7 @@ class Collection {
       value = value == null ? null : value;
 
       if (definition[Shallow] === true) {
-        throw new Error('Nu-uh');
+        throw new Error("Nu-uh");
       } else {
         value = value == null ? create_default(definition) : value;
 
@@ -567,8 +567,8 @@ class Collection {
     }
 
     this.__emit({
-      type: 'create',
-      item: object,
+      type: "create",
+      item: object
     });
     this.database.push(object);
     return await this.__get_item(object);
@@ -578,7 +578,7 @@ class Collection {
     let initial_length = this.database.length;
     let items_to_remove = await this.findAll({
       where: where,
-      transaction: transaction,
+      transaction: transaction
     });
     this.database = this.database.filter(item => {
       return (
@@ -588,8 +588,8 @@ class Collection {
       );
     });
     this.__emit({
-      type: 'destroy',
-      items: items_to_remove.map(x => x.dataValues),
+      type: "destroy",
+      items: items_to_remove.map(x => x.dataValues)
     });
     return initial_length - this.database.length;
   }
@@ -639,9 +639,9 @@ class Collection {
 
     if (updated_rows.length !== 0) {
       this.__emit({
-        type: 'update',
+        type: "update",
         items_to_update: updated_rows.map(x => this._identifier(x)),
-        change: updateValues,
+        change: updateValues
       });
     }
 
@@ -685,15 +685,15 @@ class Collection {
 
     let found = await this.findOne({
       where: where,
-      transaction,
+      transaction
     });
 
     if (found) {
       await this.update(updateValues, {
         where: {
-          id: found.id,
+          id: found.id
         },
-        transaction,
+        transaction
       });
       return false;
     } else {
@@ -743,7 +743,7 @@ class Collection {
     let real_options = {
       ...options,
       offset: 0,
-      limit: Infinity,
+      limit: Infinity
     };
 
     let offset = options.offset || 0;
@@ -753,7 +753,7 @@ class Collection {
 
     return {
       rows: items.slice(offset, limit + 1),
-      count: items.length,
+      count: items.length
     };
   }
 
@@ -791,13 +791,13 @@ class Collection {
       ...unknown_options
     } = {}
   ) {
-    if (typeof foreignKey === 'string') {
+    if (typeof foreignKey === "string") {
       foreignKey = { name: foreignKey };
     }
 
     let {
       name: foreignKeyName = `${getterName}Id`,
-      allowNull = true,
+      allowNull = true
     } = foreignKey;
 
     this.fields[foreignKeyName] = {
@@ -805,12 +805,12 @@ class Collection {
       allowNull: Boolean(allowNull),
       primaryKey: false,
       defaultValue: null,
-      autoIncrement: null,
+      autoIncrement: null
     };
     this.Model_Class.prototype[`get${getterName}`] = async function({
       transaction,
       include,
-      where = {},
+      where = {}
     } = {}) {
       // prettier-ignore
       precondition(isEmpty(unknown_options), `WIP: belongsTo(_, options) is not supported yet (${Object.keys(unknown_options).join(', ')})`);
@@ -820,10 +820,10 @@ class Collection {
       let result = await foreignCollection.findOne({
         where: {
           ...where,
-          id: this.dataValues[foreignKeyName],
+          id: this.dataValues[foreignKeyName]
         },
         include,
-        transaction,
+        transaction
       });
       this.dataValues[getterName] = result;
       this[getterName] = result;
@@ -840,12 +840,12 @@ class Collection {
       primaryKey: false,
       allowNull: true,
       defaultValue: null,
-      autoIncrement: null,
+      autoIncrement: null
     };
     this.Model_Class.prototype[`get${getterName}`] = async function({
       include,
       transaction,
-      where = {},
+      where = {}
     } = {}) {
       // `this` here is the Instance, the collection is `this.collection`
       // prettier-ignore
@@ -856,10 +856,10 @@ class Collection {
       let result = await foreignCollection.findAll({
         where: {
           [relation_key]: this.dataValues.id,
-          ...where,
+          ...where
         },
         include,
-        transaction,
+        transaction
       });
       this.dataValues[getterName] = result;
       this[getterName] = result;
@@ -872,12 +872,12 @@ class Collection {
     let relation_key = `${this.singular}Id`;
 
     foreignCollection.fields[relation_key] = {
-      type: this.fields.id.type,
+      type: this.fields.id.type
     };
     this.Model_Class.prototype[`get${getterName}`] = async function({
       transaction,
       include,
-      where = {},
+      where = {}
     } = {}) {
       // `this` here is the Instance, the collection is `this.collection`
       // prettier-ignore
@@ -888,10 +888,10 @@ class Collection {
       let result = await foreignCollection.findOne({
         where: {
           ...where,
-          [relation_key]: this.dataValues.id,
+          [relation_key]: this.dataValues.id
         },
         transaction,
-        include,
+        include
       });
       this.dataValues[getterName] = result;
       this[getterName] = result;
@@ -908,7 +908,7 @@ class Collection {
 
     // Create or find the proxy collection
     let found = [...this.base.definitions].find(([key, x]) => {
-      if (typeof through === 'string') {
+      if (typeof through === "string") {
         return x.plural === through;
       } else {
         return x === through;
@@ -918,7 +918,7 @@ class Collection {
     if (found == null) {
       throughCollection = this.base.define(through, {
         [`${this.singular}Id`]: this.fields.id.type,
-        [`${foreignCollection.singular}Id`]: foreignCollection.fields.id.type,
+        [`${foreignCollection.singular}Id`]: foreignCollection.fields.id.type
       });
     } else {
       throughCollection = found[1];
@@ -926,19 +926,19 @@ class Collection {
         ...throughCollection.fields,
         [`${this.singular}Id`]: this.__define_field({
           key: `${this.singular}Id`,
-          field: this.fields.id.type,
+          field: this.fields.id.type
         }),
         [`${foreignCollection.singular}Id`]: this.__define_field({
           key: `${foreignCollection.singular}Id`,
-          field: foreignCollection.fields.id.type,
-        }),
+          field: foreignCollection.fields.id.type
+        })
       };
     }
 
     this.Model_Class.prototype[`get${getterName}`] = async function({
       include,
       transaction,
-      where = {},
+      where = {}
     } = {}) {
       // `this` here is the Instance, the collection is `this.collection`
       // prettier-ignore
@@ -948,19 +948,19 @@ class Collection {
 
       let other_ids = await throughCollection.findAll({
         where: {
-          [`${this.collection.singular}Id`]: this.dataValues.id,
+          [`${this.collection.singular}Id`]: this.dataValues.id
         },
-        transaction,
+        transaction
       });
 
       let results = other_ids.map(async id => {
         return await foreignCollection.findOne({
           where: {
             ...where,
-            id: id.id,
+            id: id.id
           },
           transaction,
-          include,
+          include
         });
       });
       this.dataValues[getterName] = results;
@@ -992,7 +992,7 @@ class Sequelize {
     // 'database' as soon as data gets accessed, and we disallow changes in
     // the definition from then on
     this.url = url;
-    this.mode = 'definition';
+    this.mode = "definition";
     this.definitions = new Map();
     this.data = new Map();
   }
@@ -1016,7 +1016,7 @@ class Sequelize {
       name: name,
       fields: fields,
       options: options,
-      database: this,
+      database: this
     });
 
     this.definitions.set(name, collection);
@@ -1054,7 +1054,7 @@ class Sequelize {
 
   isDefined(table) {
     // NOTE Dirty fix for migrations
-    if (table === 'SequelizeMeta') {
+    if (table === "SequelizeMeta") {
       return true;
     }
 
@@ -1063,36 +1063,36 @@ class Sequelize {
 }
 
 Sequelize.Op = {
-  and: Symbol('Sequelize [and]'),
-  or: Symbol('Sequelize [or]'),
-  ne: Symbol('Sequelize [ne]'),
-  in: Symbol('Sequelize [in]'),
-  between: Symbol('Sequelize [between]'),
-  eq: Symbol('Sequelize [eq]'),
-  gt: Symbol('Sequelize [gt]'),
-  gte: Symbol('Sequelize [gte]'),
-  lt: Symbol('Sequelize [lt]'),
-  lte: Symbol('Sequelize [lte]'),
-  contains: Symbol('Sequelize [contains]'),
-  iLike: Symbol('Sequelize [iLike]'),
-  like: Symbol('Sequelize [like]'),
+  and: Symbol("Sequelize [and]"),
+  or: Symbol("Sequelize [or]"),
+  ne: Symbol("Sequelize [ne]"),
+  in: Symbol("Sequelize [in]"),
+  between: Symbol("Sequelize [between]"),
+  eq: Symbol("Sequelize [eq]"),
+  gt: Symbol("Sequelize [gt]"),
+  gte: Symbol("Sequelize [gte]"),
+  lt: Symbol("Sequelize [lt]"),
+  lte: Symbol("Sequelize [lte]"),
+  contains: Symbol("Sequelize [contains]"),
+  iLike: Symbol("Sequelize [iLike]"),
+  like: Symbol("Sequelize [like]")
 };
 
-let OperationSymbol = Symbol('Operation type');
+let OperationSymbol = Symbol("Operation type");
 
 Object.assign(Sequelize, {
   ...Datatypes,
   col: column_name => {
-    return { [OperationSymbol]: { type: 'col', column_name } };
+    return { [OperationSymbol]: { type: "col", column_name } };
   },
   cast: (value, type) => {
-    return { [OperationSymbol]: { type: 'cast', value, cast_type: type } };
+    return { [OperationSymbol]: { type: "cast", value, cast_type: type } };
   },
   where: (value, predicate) => {
-    return { [OperationSymbol]: { type: 'where', value, predicate } };
+    return { [OperationSymbol]: { type: "where", value, predicate } };
   },
   literal: query => {
-    return { [OperationSymbol]: { type: 'literal', query: query } };
-  },
+    return { [OperationSymbol]: { type: "literal", query: query } };
+  }
 });
 module.exports = Sequelize;
