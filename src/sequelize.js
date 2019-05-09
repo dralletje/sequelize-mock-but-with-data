@@ -381,10 +381,9 @@ let does_match_where = (item, where, fields) => {
   return predicates.every(([key, predicate]) => {
     // Make sure that every key in the where clause actually exists
     let field = fields[key];
-    precondition(
-      field != null,
-      `Querying on key '${key}', but it is not defined in the model`
-    );
+
+    // prettier-ignore
+    precondition(field != null, `Querying on key '${key}', but it is not defined in the model`);
 
     // TODO Have some casts throw with edgy values
     // let { cast = (x => x) } = field.type;
@@ -396,14 +395,11 @@ let does_match_where = (item, where, fields) => {
 };
 
 class Collection {
-  constructor({
-    name,
-    fields,
-    options: { indexes, ...options } = {},
-    database,
-  }) {
+  constructor({ name, fields, options = {}, database }) {
+    let { timestamps = true, ...unknown_options } = options;
+
     // prettier-ignore
-    precondition(isEmpty(options), `WIP: Options not yet... understood (${JSON.stringify(options)})`);
+    precondition(isEmpty(unknown_options), `WIP: Options not yet... understood (${JSON.stringify(unknown_options)})`);
 
     // TODO Something with indexes
     // indexes
@@ -417,24 +413,30 @@ class Collection {
     this.singular = upperFirst(inflection.singularize(name));
     this.plural = upperFirst(inflection.pluralize(name));
     this.fields = {
-      updatedAt: {
-        type: Datatypes.DATE,
-        primaryKey: false,
-        allowNull: false,
-        defaultValue: Datatypes.NOW,
-        autoIncrement: null,
-      },
-      createdAt: {
-        type: Datatypes.DATE,
-        primaryKey: false,
-        allowNull: false,
-        defaultValue: Datatypes.NOW,
-        autoIncrement: null,
-      },
       ...mapValues(fields, (field, key) => {
         return this.__define_field({ field, key });
       }),
     };
+
+    if (timestamps) {
+      this.fields = {
+        updatedAt: {
+          type: Datatypes.DATE,
+          primaryKey: false,
+          allowNull: false,
+          defaultValue: Datatypes.NOW,
+          autoIncrement: null,
+        },
+        createdAt: {
+          type: Datatypes.DATE,
+          primaryKey: false,
+          allowNull: false,
+          defaultValue: Datatypes.NOW,
+          autoIncrement: null,
+        },
+        ...this.fields,
+      };
+    }
 
     this.options = options;
 
@@ -445,6 +447,11 @@ class Collection {
       configurable: true,
       writable: true,
       value: `${this.singular}Instance`,
+    });
+    Object.defineProperty(this.Model_Class, "options", {
+      configurable: true,
+      writable: true,
+      value: this.options,
     });
   }
 
@@ -491,7 +498,7 @@ class Collection {
   }
 
   __emit(mutation) {
-    this.base.mock.emit('mutation', {
+    this.base.mock.emit("mutation", {
       ...mutation,
       collection_name: this.name,
     });
@@ -534,7 +541,6 @@ class Collection {
         precondition(valid_getter_suffix.length === 1, `Multiple relations defined for model '${include.model.name}'`);
         let getter_suffix = valid_getter_suffix[0];
 
-
         await instance[`get${getter_suffix}`]({
           include: include.include,
           where: include.where,
@@ -557,7 +563,6 @@ class Collection {
     let unknown_keys = Object.keys(item).filter(
       (key) => this.fields[key] == null
     );
-
     // prettier-ignore
     precondition(unknown_keys.length === 0, `Unknown fields found in ${this.name}.create(): ${unknown_keys.join(', ')}`);
 
@@ -585,11 +590,13 @@ class Collection {
       }
     });
 
-    object.createdAt = object.createdAt || new Date();
-    object.updatedAt = object.updatedAt || new Date();
+    if (this.options.timestamps) {
+      object.createdAt = object.createdAt || new Date();
+      object.updatedAt = object.updatedAt || new Date();
+    }
 
     this.__emit({
-      type: 'create',
+      type: "create",
       item: object,
     });
     this.database.push(object);
@@ -610,14 +617,17 @@ class Collection {
       );
     });
     this.__emit({
-      type: 'destroy',
-      items: items_to_remove.map(x => x.dataValues),
-    })
+      type: "destroy",
+      items: items_to_remove.map((x) => x.dataValues),
+    });
     return initial_length - this.database.length;
   }
 
   async update(updateValues, { where, transaction } = {}) {
-    precondition(where != null, `You can't specify an update without a where clause`);
+    precondition(
+      where != null,
+      `You can't specify an update without a where clause`
+    );
 
     // TODO Implement check on `updateValues` to know the values exist
     let updated_rows = [];
@@ -658,8 +668,8 @@ class Collection {
 
     if (updated_rows.length !== 0) {
       this.__emit({
-        type: 'update',
-        items_to_update: updated_rows.map(x => this._identifier(x)),
+        type: "update",
+        items_to_update: updated_rows.map((x) => this._identifier(x)),
         change: updateValues,
       });
     }
@@ -673,7 +683,7 @@ class Collection {
     let primary_key = fields.find(([key, type]) => type.primaryKey === true);
     if (primary_key != null) {
       let key = primary_key[0];
-      return { [key]: item[key] }
+      return { [key]: item[key] };
     }
 
     // TODO Look for unique indexes?
@@ -926,15 +936,13 @@ class Collection {
     let throughCollection = null;
 
     // Create or find the proxy collection
-    let found = [...this.base.definitions].find(
-      ([key, x]) => {
-        if (typeof through === "string") {
-          return x.plural === through;
-        } else {
-          return x === through;
-        }
+    let found = [...this.base.definitions].find(([key, x]) => {
+      if (typeof through === "string") {
+        return x.plural === through;
+      } else {
+        return x === through;
       }
-    );
+    });
 
     if (found == null) {
       throughCollection = this.base.define(through, {

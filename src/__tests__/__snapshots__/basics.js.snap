@@ -4,6 +4,35 @@ exports[`User.sync({ force: true }) will clear database 1`] = `Object {}`;
 
 exports[`sequelize.sync({ force: true }) will clear database 1`] = `Object {}`;
 
+exports[`should not add createdAt and updatedAt if timestamps are disabled 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "email": "m.c.dral@gmail.com",
+    "id": "4",
+    "name": "Michiel Dral",
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "email": "o.l.beige@gmail.com",
+    "id": "5",
+    "name": "Ola Beige",
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "email": "j.strange@gmail.com",
+    "id": "6",
+    "name": "Jake Strange",
+    "verified": true,
+  },
+]
+`;
+
 exports[`should remove a selection of users 1`] = `
 Array [
   Object {
