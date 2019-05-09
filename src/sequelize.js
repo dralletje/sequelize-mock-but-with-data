@@ -12,21 +12,21 @@ let Datatypes = {
   STRING: {
     [Shallow]: true,
     name: "STRING",
-    cast: x => {
+    cast: (x) => {
       return String(x);
     }
   },
   TEXT: {
     [Shallow]: true,
     name: "TEXT",
-    cast: x => {
+    cast: (x) => {
       return String(x);
     }
   },
   BOOLEAN: {
     [Shallow]: true,
     name: "BOOLEAN",
-    cast: x => {
+    cast: (x) => {
       return Boolean(x);
     }
   },
@@ -43,7 +43,7 @@ let Datatypes = {
   UUID: {
     [Shallow]: true,
     name: "UUID",
-    cast: x => {
+    cast: (x) => {
       // COULD also do uuid conversion here but honestly... honestly?!
       return String(x);
     }
@@ -60,7 +60,7 @@ let Datatypes = {
       return `${next_id_counter}`;
       // return next_id_counter
     },
-    cast: x => {
+    cast: (x) => {
       return String(x);
     }
   },
@@ -70,7 +70,7 @@ let Datatypes = {
     create_default: () => {
       return Date.now();
     },
-    cast: x => {
+    cast: (x) => {
       // prettier-ignore
       throw new Error(`Sequelize.NOW is not usable as type`);
     }
@@ -78,7 +78,7 @@ let Datatypes = {
   INTEGER: {
     [Shallow]: true,
     name: "INTEGER",
-    cast: x => {
+    cast: (x) => {
       // prettier-ignore
       precondition(x !== '', `Tried to use an empty string as INTEGER`);
 
@@ -93,7 +93,7 @@ let Datatypes = {
   DECIMAL: {
     [Shallow]: true,
     name: "DECIMAL",
-    cast: x => {
+    cast: (x) => {
       // prettier-ignore
       precondition(x !== '', `Tried to use an empty string as DECIMAL`);
 
@@ -108,7 +108,7 @@ let Datatypes = {
   DATE: {
     [Shallow]: true,
     name: "DATE",
-    cast: x => {
+    cast: (x) => {
       return new Date(x);
     }
   },
@@ -123,7 +123,7 @@ let Datatypes = {
   }
 };
 
-let create_default = definition => {
+let create_default = (definition) => {
   if (typeof definition.defaultValue === "function") {
     return definition.defaultValue();
   }
@@ -142,7 +142,7 @@ let create_default = definition => {
 
 // This is necessary to prevent a total reload whenever
 // the module that creates the sequelize gets reloaded in dev
-let find_parent_module = module => {
+let find_parent_module = (module) => {
   if (module.parent == null) {
     return module;
   } else {
@@ -195,7 +195,7 @@ class DefaultModel {
   }
 }
 
-let generate_like_regex = pattern => {
+let generate_like_regex = (pattern) => {
   return new RegExp(
     escapeRegExp(pattern)
       .replace(/%/g, ".*")
@@ -211,7 +211,7 @@ let special_matchers = (item, matchobject) => {
     return item === matchobject;
   }
 
-  return Object.getOwnPropertySymbols(matchobject).every(symbol => {
+  return Object.getOwnPropertySymbols(matchobject).every((symbol) => {
     if (symbol === Sequelize.Op.or) {
       let queries = matchobject[Sequelize.Op.or];
 
@@ -221,13 +221,13 @@ let special_matchers = (item, matchobject) => {
         if (queries.length === 0) {
           return true;
         } else {
-          return queries.some(query => {
+          return queries.some((query) => {
             return special_matchers(item, query);
           });
         }
       } else {
         // console.warn(`I really think it is better to use [Or.or]: <array>`)
-        return Object.getOwnPropertySymbols(queries).some(symbol => {
+        return Object.getOwnPropertySymbols(queries).some((symbol) => {
           return special_matchers(item, { [symbol]: queries[symbol] });
         });
       }
@@ -238,7 +238,7 @@ let special_matchers = (item, matchobject) => {
       if (queries.length === 0) {
         return true;
       } else {
-        return queries.every(query => {
+        return queries.every((query) => {
           return special_matchers(item, query);
         });
       }
@@ -255,7 +255,7 @@ let special_matchers = (item, matchobject) => {
       precondition(Array.isArray(item), `Op.contains can not be applied to a non-array`);
 
       let match_frame = array[0];
-      return item.some(x => isMatch(x, match_frame));
+      return item.some((x) => isMatch(x, match_frame));
     }
     if (symbol === Sequelize.Op.eq) {
       return item === matchobject[Sequelize.Op.eq];
@@ -295,13 +295,13 @@ let special_matchers = (item, matchobject) => {
   });
 };
 
-let arrayisze_object = array_or_object => {
+let arrayisze_object = (array_or_object) => {
   if (Array.isArray(array_or_object)) {
     return array_or_object;
   } else {
     let symbols = Object.getOwnPropertySymbols(array_or_object);
     let keys = Object.keys(array_or_object);
-    return [...symbols, ...keys].map(key => {
+    return [...symbols, ...keys].map((key) => {
       return { [key]: array_or_object[key] };
     });
   }
@@ -320,7 +320,7 @@ let does_match_where = (item, where, fields) => {
 
   if (where[Sequelize.Op.and] != null) {
     let and_predicates = arrayisze_object(where[Sequelize.Op.and]);
-    let and_match = and_predicates.every(predicate => {
+    let and_match = and_predicates.every((predicate) => {
       return does_match_where(item, predicate, fields);
     });
 
@@ -332,7 +332,7 @@ let does_match_where = (item, where, fields) => {
   if (where[Sequelize.Op.or] != null) {
     let or_predicates = arrayisze_object(where[Sequelize.Op.or]);
 
-    let or_match = or_predicates.some(predicate => {
+    let or_match = or_predicates.some((predicate) => {
       return does_match_where(item, predicate, fields);
     });
 
@@ -504,7 +504,7 @@ class Collection {
         let valid_getter_suffix = [
           include.model.singular,
           include.model.plural
-        ].filter(x => typeof instance[`get${x}`] === "function");
+        ].filter((x) => typeof instance[`get${x}`] === "function");
 
         // prettier-ignore
         precondition(valid_getter_suffix.length !== 0, `No relations defined for '${include.model.name}'`);
@@ -527,12 +527,12 @@ class Collection {
   }
 
   async bulkCreate(items) {
-    return Promise.all(items.map(item => this.create(item)));
+    return Promise.all(items.map((item) => this.create(item)));
   }
 
   async create(item) {
     let unknown_keys = Object.keys(item).filter(
-      key => this.fields[key] == null
+      (key) => this.fields[key] == null
     );
     // prettier-ignore
     precondition(unknown_keys.length === 0, `Unknown fields found in ${this.name}.create(): ${unknown_keys.join(', ')}`);
@@ -580,16 +580,16 @@ class Collection {
       where: where,
       transaction: transaction
     });
-    this.database = this.database.filter(item => {
+    this.database = this.database.filter((item) => {
       return (
-        items_to_remove.find(to_remove => {
+        items_to_remove.find((to_remove) => {
           return to_remove[Object_Reference] === item;
         }) == null
       );
     });
     this.__emit({
       type: "destroy",
-      items: items_to_remove.map(x => x.dataValues)
+      items: items_to_remove.map((x) => x.dataValues)
     });
     return initial_length - this.database.length;
   }
@@ -602,9 +602,9 @@ class Collection {
 
     // TODO Implement check on `updateValues` to know the values exist
     let updated_rows = [];
-    this.database = this.database.map(item => {
+    this.database = this.database.map((item) => {
       if (does_match_where(item, where, this.fields)) {
-        let updated_value = immer(item, u => {
+        let updated_value = immer(item, (u) => {
           u.updatedAt = new Date();
           for (let [key, value] of Object.entries(updateValues)) {
             // prettier-ignore
@@ -640,7 +640,7 @@ class Collection {
     if (updated_rows.length !== 0) {
       this.__emit({
         type: "update",
-        items_to_update: updated_rows.map(x => this._identifier(x)),
+        items_to_update: updated_rows.map((x) => this._identifier(x)),
         change: updateValues
       });
     }
@@ -721,12 +721,12 @@ class Collection {
 
     let items = (await Promise.all(
       this.database
-        .filter(item => {
+        .filter((item) => {
           let does_match = does_match_where(item, where, this.fields);
           return does_match;
         })
-        .map(async item => await this.__get_item(item, { include }))
-    )).filter(x => Boolean(x));
+        .map(async (item) => await this.__get_item(item, { include }))
+    )).filter((x) => Boolean(x));
 
     if (order) {
       items = orderBy(
@@ -953,7 +953,7 @@ class Collection {
         transaction
       });
 
-      let results = other_ids.map(async id => {
+      let results = other_ids.map(async (id) => {
         return await foreignCollection.findOne({
           where: {
             ...where,
@@ -1082,7 +1082,7 @@ let OperationSymbol = Symbol("Operation type");
 
 Object.assign(Sequelize, {
   ...Datatypes,
-  col: column_name => {
+  col: (column_name) => {
     return { [OperationSymbol]: { type: "col", column_name } };
   },
   cast: (value, type) => {
@@ -1091,7 +1091,7 @@ Object.assign(Sequelize, {
   where: (value, predicate) => {
     return { [OperationSymbol]: { type: "where", value, predicate } };
   },
-  literal: query => {
+  literal: (query) => {
     return { [OperationSymbol]: { type: "literal", query: query } };
   }
 });
