@@ -17,6 +17,7 @@
     "jest": "^23.6.0"
   },
   "prettier": {
-    "arrowParens": "always"
+    "arrowParens": "always",
+    "trailingComma": "es5"
   }
 }

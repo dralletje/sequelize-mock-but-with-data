@@ -16,12 +16,12 @@ let define = (options = {}) => {
     {
       id: {
         type: Sequelize.UUID,
-        defaultValue: Sequelize.UUIDV4
+        defaultValue: Sequelize.UUIDV4,
       },
       name: Sequelize.STRING,
       email: Sequelize.STRING,
       age: Sequelize.INTEGER,
-      verified: Sequelize.BOOLEAN
+      verified: Sequelize.BOOLEAN,
     },
     options
   );
@@ -33,19 +33,19 @@ let some_users_setup = async ({ User }) => {
     name: "Michiel Dral",
     email: "m.c.dral@gmail.com",
     age: 22,
-    verified: true
+    verified: true,
   });
   await User.create({
     name: "Ola Beige",
     email: "o.l.beige@gmail.com",
     age: 22,
-    verified: true
+    verified: true,
   });
   await User.create({
     name: "Jake Strange",
     email: "j.strange@gmail.com",
     age: 24,
-    verified: true
+    verified: true,
   });
 };
 
@@ -56,7 +56,7 @@ it("should work with simple insert", async () => {
     name: "Michiel Dral",
     email: "m.c.dral@gmail.com",
     age: 22,
-    verified: true
+    verified: true,
   });
 
   expect(inserted).toMatchSnapshot();
@@ -69,10 +69,10 @@ it("should update a specific user", async () => {
   let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
   await User.update(
     {
-      age: 25
+      age: 25,
     },
     {
-      where: { id: jake.id }
+      where: { id: jake.id },
     }
   );
 
@@ -86,7 +86,7 @@ it("should remove a specific user", async () => {
 
   let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
   await User.destroy({
-    where: { id: jake.id }
+    where: { id: jake.id },
   });
 
   let users = await User.findAll();
@@ -99,10 +99,10 @@ it("should update a selection of users", async () => {
 
   await User.update(
     {
-      age: 23
+      age: 23,
     },
     {
-      where: { age: 22 }
+      where: { age: 22 },
     }
   );
 
@@ -115,7 +115,7 @@ it("should remove a selection of users", async () => {
   await some_users_setup({ User });
 
   await User.destroy({
-    where: { age: 22 }
+    where: { age: 22 },
   });
 
   let users = await User.findAll();
