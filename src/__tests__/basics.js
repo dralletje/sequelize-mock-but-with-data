@@ -9,20 +9,24 @@ global.Date.UTC = _Date.UTC;
 global.Date.parse = _Date.parse;
 global.Date.now = _Date.now;
 
-let define = () => {
+let define = (options = {}) => {
   let sequelize = new Sequelize();
-  let User = sequelize.define('User', {
-    id: {
-      type: Sequelize.UUID,
-      defaultValue: Sequelize.UUIDV4,
+  let User = sequelize.define(
+    'User',
+    {
+      id: {
+        type: Sequelize.UUID,
+        defaultValue: Sequelize.UUIDV4,
+      },
+      name: Sequelize.STRING,
+      email: Sequelize.STRING,
+      age: Sequelize.INTEGER,
+      verified: Sequelize.BOOLEAN,
     },
-    name: Sequelize.STRING,
-    email: Sequelize.STRING,
-    age: Sequelize.INTEGER,
-    verified: Sequelize.BOOLEAN,
-  });
+    options
+  );
   return { sequelize, User };
-}
+};
 
 let some_users_setup = async ({ User }) => {
   await User.create({
@@ -43,7 +47,7 @@ let some_users_setup = async ({ User }) => {
     age: 24,
     verified: true,
   });
-}
+};
 
 it('should work with simple insert', async () => {
   let { sequelize, User } = define();
@@ -63,11 +67,14 @@ it('should update a specific user', async () => {
   await some_users_setup({ User });
 
   let jake = await User.findOne({ where: { email: 'j.strange@gmail.com' } });
-  await User.update({
-    age: 25,
-  }, {
-    where: { id: jake.id },
-  });
+  await User.update(
+    {
+      age: 25,
+    },
+    {
+      where: { id: jake.id },
+    }
+  );
 
   let users = await User.findAll();
   expect(users).toMatchSnapshot();
@@ -90,11 +97,14 @@ it('should update a selection of users', async () => {
   let { sequelize, User } = define();
   await some_users_setup({ User });
 
-  await User.update({
-    age: 23,
-  }, {
-    where: { age: 22 },
-  });
+  await User.update(
+    {
+      age: 23,
+    },
+    {
+      where: { age: 22 },
+    }
+  );
 
   let users = await User.findAll();
   expect(users).toMatchSnapshot();
@@ -139,4 +149,12 @@ it('User.sync({ force: true }) will clear database', async () => {
   await User.sync({ force: true });
   let users = await User.findAll();
   expect(users).toMatchSnapshot([]);
+});
+
+it('should not add createdAt and updatedAt if timestamps are disabled', async () => {
+  let { sequelize, User } = define({ timestamps: false });
+  await some_users_setup({ User });
+  let users = await User.findAll();
+
+  expect(users).toMatchSnapshot();
 });
