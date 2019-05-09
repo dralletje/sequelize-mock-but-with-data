@@ -5,6 +5,9 @@ let util = require("util");
 let immer = require("immer").default;
 let { EventEmitter } = require("events");
 
+// let known = require('./known-but-better-ofcourse.js');
+let known = x => x;
+
 let Object_Reference = Symbol("Reference to the object for internal reference");
 let next_id_counter = 0;
 let Shallow = Symbol("Shallow type");
@@ -165,10 +168,13 @@ let precondition = (condition, message) => {
 class DefaultModel {
   constructor(dataValues, collection) {
     this.collection = collection;
-    this.dataValues = { ...dataValues };
+    this.dataValues = known({ ...dataValues });
+    // this.dataValues = { ...dataValues };
     this[Object_Reference] = dataValues;
 
     Object.assign(this, dataValues);
+
+    return known(this);
   }
 
   [util.inspect.custom]() {
@@ -193,6 +199,16 @@ class DefaultModel {
     // prettier-ignore
     throw new Error(`Try using 'Model.destroy(...)' instead of 'instance.destroy()'`);
   }
+
+  // get then() {
+  //   return undefined;
+  // }
+  // get asymmetricMatch() {
+  //   return undefined;
+  // }
+  // get $$typeof() {
+  //   return undefined;
+  // }
 }
 
 let generate_like_regex = (pattern) => {
