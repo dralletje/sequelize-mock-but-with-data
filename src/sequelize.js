@@ -347,10 +347,9 @@ let does_match_where = (item, where, fields) => {
   return predicates.every(([key, predicate]) => {
     // Make sure that every key in the where clause actually exists
     let field = fields[key];
-    precondition(
-      field != null,
-      `Querying on key '${key}', but it is not defined in the model`
-    );
+
+    // prettier-ignore
+    precondition(field != null, `Querying on key '${key}', but it is not defined in the model`);
 
     // TODO Have some casts throw with edgy values
     // let { cast = (x => x) } = field.type;
@@ -363,17 +362,13 @@ let does_match_where = (item, where, fields) => {
 
 class Collection {
   constructor({ name, fields, options = {}, database }) {
+    let { timestamps = true, ...unknown_options } = options;
+
     // prettier-ignore
-    // precondition(
-    //   isEmpty(options),
-    //   `WIP: Options not yet... understood (${JSON.stringify(options)})`
-    // );
+    precondition(isEmpty(unknown_options), `WIP: Options not yet... understood (${JSON.stringify(unknown_options)})`);
 
     // TODO Something with indexes
     // indexes
-    if (!Object.keys(options).includes('timestamps')) {
-      options.timestamps = true;
-    }
 
     this.name = name;
     if (database.mock == null) {
@@ -389,7 +384,7 @@ class Collection {
       }),
     };
 
-    if (options.timestamps) {
+    if (timestamps) {
       this.fields = {
         updatedAt: {
           type: Datatypes.DATE,
