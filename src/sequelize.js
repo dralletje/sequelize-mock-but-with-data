@@ -144,7 +144,9 @@ let create_default = (definition) => {
 };
 
 // This is necessary to prevent a total reload whenever
-// the module that creates the sequelize gets reloaded in dev
+// the module that creates the sequelize gets reloaded in my development environment.
+// I desperately need to fix this in my development setup, but for now this is here 😅
+// I wonder if the root module changes in a jest test suite.
 let find_parent_module = (module) => {
   if (module.parent == null) {
     return module;
@@ -394,9 +396,20 @@ let does_match_where = (item, where, fields) => {
   });
 };
 
+let validate_collection_indexes = (indexes) => {
+  for (let index of indexes) {
+    let { unique, fields, ...unknown_options } = index;
+
+    // prettier-ignore
+    precondition(isEmpty(unknown_options), `WIP: Index property not yet understood, only .unique and .fields (got ${JSON.stringify(unknown_options)})`);
+  }
+
+  return indexes;
+}
+
 class Collection {
   constructor({ name, fields, options = {}, database }) {
-    let { timestamps = true, ...unknown_options } = options;
+    let { timestamps = true, indexes = [], ...unknown_options } = options;
 
     // prettier-ignore
     precondition(isEmpty(unknown_options), `WIP: Options not yet... understood (${JSON.stringify(unknown_options)})`);
@@ -404,11 +417,13 @@ class Collection {
     // TODO Something with indexes
     // indexes
 
-    this.name = name;
+    this.indexes = validate_collection_indexes(indexes);
+
     if (database.mock == null) {
       console.log(`database:`, database.mock);
     }
 
+    this.name = name;
     this.base = database;
     this.singular = upperFirst(inflection.singularize(name));
     this.plural = upperFirst(inflection.pluralize(name));
@@ -440,8 +455,6 @@ class Collection {
 
     this.options = options;
 
-    this.database = [];
-
     this.Model_Class = class Model extends DefaultModel {};
     Object.defineProperty(this.Model_Class, "name", {
       configurable: true,
@@ -455,9 +468,16 @@ class Collection {
     });
   }
 
+  get database() {
+    return this.base.data.get(this.name);
+  }
+  set database(value) {
+    this.base.data.set(this.name, value);
+    return true;
+  }
+
   async sync({ force = false } = {}) {
     if (force === true) {
-      this.__;
       this.database = [];
     }
     return true;
@@ -1009,11 +1029,6 @@ class SequelizeMockExtension extends EventEmitter {}
 
 class Sequelize {
   constructor(url, ...args) {
-    // TODO Ugly and hacky >_>
-    if (database_cache[url]) {
-      return database_cache[url];
-    }
-
     this.__isMock = true;
     this.mock = new SequelizeMockExtension();
 
@@ -1023,11 +1038,12 @@ class Sequelize {
     this.url = url;
     this.mode = "definition";
     this.definitions = new Map();
-    this.data = new Map();
+
+    this.data = database_cache[url] || new Map();
   }
 
   __persist() {
-    database_cache[this.url] = this;
+    database_cache[this.url] = this.data;
   }
 
   import(path) {
@@ -1041,15 +1057,16 @@ class Sequelize {
     // prettier-ignore
     precondition(!this.definitions.has(name), `Model '${name}' already defined`);
 
+    if (this.data.has(name) === false) {
+      this.data.set(name, []);
+    }
     let collection = new Collection({
       name: name,
       fields: fields,
       options: options,
       database: this,
     });
-
     this.definitions.set(name, collection);
-    this.data.set(name, []);
 
     return collection;
   }
