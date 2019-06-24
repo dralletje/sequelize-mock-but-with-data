@@ -9,7 +9,6 @@ let { EventEmitter } = require("events");
 let known = x => x;
 
 let Object_Reference = Symbol("Reference to the object for internal reference");
-let next_id_counter = 0;
 let Shallow = Symbol("Shallow type");
 let Datatypes = {
   STRING: {
@@ -54,14 +53,12 @@ let Datatypes = {
   UUIDV4: {
     [Shallow]: true,
     name: "UUIDV4",
-    create_default: () => {
-      next_id_counter = next_id_counter + 1;
+    create_default: ({ next_id }) => {
       // Generate a UUID like just for the feelz
       // (Honestly this is unecessary but idk feels good I guess?)
       // let id = padEnd(`${next_id_counter}`, 32, '0');
       // return `${id.slice(0,8)}-${id.slice(8, 12)}-${id.slice(12, 16)}-${id.slice(16, 20)}-${id.slice(20, 32)}`;
-      return `${next_id_counter}`;
-      // return next_id_counter
+      return `${next_id()}`;
     },
     cast: (x) => {
       return String(x);
@@ -126,7 +123,7 @@ let Datatypes = {
   },
 };
 
-let create_default = (definition) => {
+let create_default = (definition, { next_id }) => {
   if (typeof definition.defaultValue === "function") {
     return definition.defaultValue();
   }
@@ -134,11 +131,10 @@ let create_default = (definition) => {
     definition.defaultValue &&
     typeof definition.defaultValue.create_default === "function"
   ) {
-    return definition.defaultValue.create_default();
+    return definition.defaultValue.create_default({ next_id });
   }
   if (definition.autoIncrement) {
-    next_id_counter = next_id_counter + 1;
-    return next_id_counter;
+    return next_id();
   }
   return null;
 };
@@ -408,7 +404,7 @@ let validate_collection_indexes = (indexes) => {
 }
 
 class Collection {
-  constructor({ name, fields, options = {}, database }) {
+  constructor({ name, fields, options = {}, next_id, database }) {
     let { timestamps = true, indexes = [], ...unknown_options } = options;
 
     // prettier-ignore
@@ -432,27 +428,22 @@ class Collection {
         return this.__define_field({ field, key });
       }),
     };
-
     if (timestamps) {
       this.fields = {
         updatedAt: {
           type: Datatypes.DATE,
-          primaryKey: false,
-          allowNull: false,
           defaultValue: Datatypes.NOW,
-          autoIncrement: null,
         },
         createdAt: {
           type: Datatypes.DATE,
-          primaryKey: false,
-          allowNull: false,
           defaultValue: Datatypes.NOW,
-          autoIncrement: null,
         },
         ...this.fields,
       };
     }
 
+    // Internal method
+    this.next_id = next_id;
     this.options = options;
 
     this.Model_Class = class Model extends DefaultModel {};
@@ -469,10 +460,11 @@ class Collection {
   }
 
   get database() {
-    return this.base.data.get(this.name);
+    let rows =  this.base.data.collections.get(this.name);
+    return rows;
   }
   set database(value) {
-    this.base.data.set(this.name, value);
+    this.base.data.collections.set(this.name, value);
     return true;
   }
 
@@ -594,7 +586,7 @@ class Collection {
       if (definition[Shallow] === true) {
         throw new Error("Nu-uh");
       } else {
-        value = value == null ? create_default(definition) : value;
+        value = value == null ? create_default(definition, { next_id: this.next_id }) : value;
 
         // prettier-ignore
         precondition(definition.allowNull || value != null, `Value '${key}' is not allowed to be null`);
@@ -624,7 +616,7 @@ class Collection {
   }
 
   async destroy({ where, transaction } = {}) {
-    let initial_length = this.database.length;
+    let old_database = this.database;
     let items_to_remove = await this.findAll({
       where: where,
       transaction: transaction,
@@ -640,7 +632,7 @@ class Collection {
       type: "destroy",
       items: items_to_remove.map((x) => x.dataValues),
     });
-    return initial_length - this.database.length;
+    return old_database.length - this.database.length;
   }
 
   async update(updateValues, { where, transaction } = {}) {
@@ -666,7 +658,7 @@ class Collection {
             // prettier-ignore
             precondition(definition.type != null, `Field '${key}' on '${this.name}' has invalid type`);
 
-            value = value == null ? create_default(definition) : value;
+            value = value == null ? create_default(definition, { next_id: this.next_id }) : value;
             // prettier-ignore
             precondition(definition.allowNull || value != null, `Value '${key}' is not allowed to be null`);
 
@@ -1039,7 +1031,7 @@ class Sequelize {
     this.mode = "definition";
     this.definitions = new Map();
 
-    this.data = database_cache[url] || new Map();
+    this.data = database_cache[url] || { next_id_counter: 1, collections: new Map() };
   }
 
   __persist() {
@@ -1057,14 +1049,20 @@ class Sequelize {
     // prettier-ignore
     precondition(!this.definitions.has(name), `Model '${name}' already defined`);
 
-    if (this.data.has(name) === false) {
-      this.data.set(name, []);
+    this.next_index_counter
+    if (this.data.collections.has(name) === false) {
+      this.data.collections.set(name, []);
     }
     let collection = new Collection({
       name: name,
       fields: fields,
       options: options,
       database: this,
+      next_id: () => {
+        let next_id = this.data.next_id_counter;
+        this.data.next_id_counter = this.data.next_id_counter + 1
+        return next_id;
+      },
     });
     this.definitions.set(name, collection);
 
@@ -1077,9 +1075,9 @@ class Sequelize {
   async sync({ force = false } = {}) {
     if (force === true) {
       // prettier-ignore
-      next_id_counter = 0;
-      for (let [key, value] of this.definitions) {
-        await value.destroy();
+      this.data.next_id_counter = 1;
+      for (let [name, rows] of this.data.collections) {
+        this.data.collections.set(name, []);
       }
     }
     return true;
@@ -1091,7 +1089,7 @@ class Sequelize {
 
   // TODO Remove this
   async flush() {
-    await this.sync({ force: true });
+    throw new Error('DEPRECATED: Use `.sync({ force: true })`')
   }
 
   getQueryInterface() {
