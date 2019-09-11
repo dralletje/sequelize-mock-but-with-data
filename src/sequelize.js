@@ -559,6 +559,13 @@ class Collection {
           transaction,
         });
 
+        if (include.required) {
+          // make sure required true in include of include still works
+          if (instance[getter_suffix] && instance[getter_suffix].length === 0) {
+            return null;
+          }
+        }
+
         if (instance[getter_suffix] == null) {
           return null;
         }
