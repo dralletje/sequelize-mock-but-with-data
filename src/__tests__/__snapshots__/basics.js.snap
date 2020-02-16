@@ -33,6 +33,26 @@ Array [
 ]
 `;
 
+exports[`should only return attributes we ask for 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "name": "Michiel Dral",
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "name": "Ola Beige",
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "name": "Jake Strange",
+  },
+]
+`;
+
 exports[`should remove a selection of users 1`] = `
 Array [
   Object {

@@ -158,3 +158,13 @@ it("should not add createdAt and updatedAt if timestamps are disabled", async ()
 
   expect(users).toMatchSnapshot();
 });
+
+it("should only return attributes we ask for", async () => {
+  let { sequelize, User } = define({ timestamps: false });
+  await some_users_setup({ User });
+  let users = await User.findAll({
+    attributes: ["name", "age"],
+  });
+
+  expect(users).toMatchSnapshot();
+});

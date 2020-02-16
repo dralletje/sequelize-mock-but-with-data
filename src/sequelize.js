@@ -1,12 +1,12 @@
 let inflection = require("inflection");
 // prettier-ignore
-let { upperFirst, mapValues, isEmpty, orderBy, isMatch, fromPairs, escapeRegExp } = require('lodash');
+let { upperFirst, mapValues, isEmpty, isArray, orderBy, isMatch, fromPairs, escapeRegExp } = require('lodash');
 let util = require("util");
 let immer = require("immer").default;
 let { EventEmitter } = require("events");
 
 // let known = require('./known-but-better-ofcourse.js');
-let known = x => x;
+let known = (x) => x;
 
 let Object_Reference = Symbol("Reference to the object for internal reference");
 let Shallow = Symbol("Shallow type");
@@ -401,7 +401,7 @@ let validate_collection_indexes = (indexes) => {
   }
 
   return indexes;
-}
+};
 
 class Collection {
   constructor({ name, fields, options = {}, next_id, database }) {
@@ -460,7 +460,7 @@ class Collection {
   }
 
   get database() {
-    let rows =  this.base.data.collections.get(this.name);
+    let rows = this.base.data.collections.get(this.name);
     return rows;
   }
   set database(value) {
@@ -593,7 +593,10 @@ class Collection {
       if (definition[Shallow] === true) {
         throw new Error("Nu-uh");
       } else {
-        value = value == null ? create_default(definition, { next_id: this.next_id }) : value;
+        value =
+          value == null
+            ? create_default(definition, { next_id: this.next_id })
+            : value;
 
         // prettier-ignore
         precondition(definition.allowNull || value != null, `Value '${key}' is not allowed to be null`);
@@ -665,7 +668,10 @@ class Collection {
             // prettier-ignore
             precondition(definition.type != null, `Field '${key}' on '${this.name}' has invalid type`);
 
-            value = value == null ? create_default(definition, { next_id: this.next_id }) : value;
+            value =
+              value == null
+                ? create_default(definition, { next_id: this.next_id })
+                : value;
             // prettier-ignore
             precondition(definition.allowNull || value != null, `Value '${key}' is not allowed to be null`);
 
@@ -762,26 +768,42 @@ class Collection {
     offset = 0,
     limit = Infinity,
     raw = false,
+    attributes = [],
     order,
     ...options
   } = {}) {
     // prettier-ignore
     precondition(isEmpty(options), `(yet) unsupported options passed to .findAll (${Object.keys(options)})`);
+    precondition(isArray(attributes), `attributes needs to be an array`);
 
-    let items = (await Promise.all(
-      this.database
-        .filter((item) => {
-          let does_match = does_match_where(item, where, this.fields);
-          return does_match;
-        })
-        .map(async (item) => {
-          if (raw === true) {
+    let items = (
+      await Promise.all(
+        this.database
+          .filter((item) => {
+            let does_match = does_match_where(item, where, this.fields);
+            return does_match;
+          })
+          .map((item) => {
+            if (attributes.length) {
+              let attr_only_item = {};
+              for (let key of Object.keys(item)) {
+                if (attributes.includes(key)) {
+                  attr_only_item[key] = item[key];
+                }
+              }
+              return attr_only_item;
+            }
             return item;
-          } else {
-            return await this.__get_item(item, { include });
-          }
-        })
-    )).filter((x) => Boolean(x));
+          })
+          .map(async (item) => {
+            if (raw === true) {
+              return item;
+            } else {
+              return await this.__get_item(item, { include });
+            }
+          })
+      )
+    ).filter((x) => Boolean(x));
 
     if (order) {
       items = orderBy(
@@ -1045,7 +1067,10 @@ class Sequelize {
     this.mode = "definition";
     this.definitions = new Map();
 
-    this.data = database_cache[url] || { next_id_counter: 1, collections: new Map() };
+    this.data = database_cache[url] || {
+      next_id_counter: 1,
+      collections: new Map(),
+    };
   }
 
   __persist() {
@@ -1063,7 +1088,7 @@ class Sequelize {
     // prettier-ignore
     precondition(!this.definitions.has(name), `Model '${name}' already defined`);
 
-    this.next_index_counter
+    this.next_index_counter;
     if (this.data.collections.has(name) === false) {
       this.data.collections.set(name, []);
     }
@@ -1074,7 +1099,7 @@ class Sequelize {
       database: this,
       next_id: () => {
         let next_id = this.data.next_id_counter;
-        this.data.next_id_counter = this.data.next_id_counter + 1
+        this.data.next_id_counter = this.data.next_id_counter + 1;
         return next_id;
       },
     });
@@ -1103,7 +1128,7 @@ class Sequelize {
 
   // TODO Remove this
   async flush() {
-    throw new Error('DEPRECATED: Use `.sync({ force: true })`')
+    throw new Error("DEPRECATED: Use `.sync({ force: true })`");
   }
 
   getQueryInterface() {
