@@ -761,6 +761,7 @@ class Collection {
     include,
     offset = 0,
     limit = Infinity,
+    raw = false,
     order,
     ...options
   } = {}) {
@@ -773,7 +774,13 @@ class Collection {
           let does_match = does_match_where(item, where, this.fields);
           return does_match;
         })
-        .map(async (item) => await this.__get_item(item, { include }))
+        .map(async (item) => {
+          if (raw === true) {
+            return item;
+          } else {
+            return await this.__get_item(item, { include });
+          }
+        })
     )).filter((x) => Boolean(x));
 
     if (order) {
