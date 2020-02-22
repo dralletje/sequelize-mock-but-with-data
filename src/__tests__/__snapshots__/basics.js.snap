@@ -163,6 +163,19 @@ Array [
 ]
 `;
 
+exports[`should work with notIn 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "verified": true,
+  },
+]
+`;
+
 exports[`should work with simple insert 1`] = `
 Object {
   "__table_name__": "User",
