@@ -297,6 +297,9 @@ let special_matchers = (item, matchobject) => {
     if (symbol === Sequelize.Op.in) {
       return matchobject[Sequelize.Op.in].includes(item);
     }
+    if (symbol === Sequelize.Op.notIn) {
+      return !matchobject[Sequelize.Op.notIn].includes(item);
+    }
     if (symbol === Sequelize.Op.between) {
       let [lowerbound, upperbound] = matchobject[Sequelize.Op.between];
       return lowerbound < item && item < upperbound;
@@ -1150,6 +1153,7 @@ Sequelize.Op = {
   or: Symbol("Sequelize [or]"),
   ne: Symbol("Sequelize [ne]"),
   in: Symbol("Sequelize [in]"),
+  notIn: Symbol("Sequelize [notIn]"),
   between: Symbol("Sequelize [between]"),
   eq: Symbol("Sequelize [eq]"),
   gt: Symbol("Sequelize [gt]"),

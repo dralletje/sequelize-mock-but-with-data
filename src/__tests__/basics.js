@@ -50,7 +50,7 @@ let some_users_setup = async ({ User }) => {
 };
 
 it("should work with simple insert", async () => {
-  let { sequelize, User } = define();
+  let { User } = define();
 
   let inserted = await User.create({
     name: "Michiel Dral",
@@ -63,7 +63,7 @@ it("should work with simple insert", async () => {
 });
 
 it("should update a specific user", async () => {
-  let { sequelize, User } = define();
+  let { User } = define();
   await some_users_setup({ User });
 
   let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
@@ -81,7 +81,7 @@ it("should update a specific user", async () => {
 });
 
 it("should remove a specific user", async () => {
-  let { sequelize, User } = define();
+  let { User } = define();
   await some_users_setup({ User });
 
   let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
@@ -94,7 +94,7 @@ it("should remove a specific user", async () => {
 });
 
 it("should update a selection of users", async () => {
-  let { sequelize, User } = define();
+  let { User } = define();
   await some_users_setup({ User });
 
   await User.update(
@@ -111,7 +111,7 @@ it("should update a selection of users", async () => {
 });
 
 it("should remove a selection of users", async () => {
-  let { sequelize, User } = define();
+  let { User } = define();
   await some_users_setup({ User });
 
   await User.destroy({
@@ -143,7 +143,7 @@ it("sequelize.sync({ force: true }) will clear database", async () => {
 });
 
 it("User.sync({ force: true }) will clear database", async () => {
-  let { sequelize, User } = define();
+  let { User } = define();
   await some_users_setup({ User });
 
   await User.sync({ force: true });
@@ -152,7 +152,7 @@ it("User.sync({ force: true }) will clear database", async () => {
 });
 
 it("should not add createdAt and updatedAt if timestamps are disabled", async () => {
-  let { sequelize, User } = define({ timestamps: false });
+  let { User } = define({ timestamps: false });
   await some_users_setup({ User });
   let users = await User.findAll();
 
@@ -160,11 +160,24 @@ it("should not add createdAt and updatedAt if timestamps are disabled", async ()
 });
 
 it("should only return attributes we ask for", async () => {
-  let { sequelize, User } = define({ timestamps: false });
+  let { User } = define({ timestamps: false });
   await some_users_setup({ User });
   let users = await User.findAll({
     attributes: ["name", "age"],
   });
 
+  expect(users).toMatchSnapshot();
+});
+
+it("should work with notIn", async () => {
+  let { User } = define({ timestamps: false });
+  await some_users_setup({ User });
+  let users = await User.findAll({
+    where: {
+      age: {
+        [Sequelize.Op.notIn]: [22],
+      },
+    },
+  });
   expect(users).toMatchSnapshot();
 });
