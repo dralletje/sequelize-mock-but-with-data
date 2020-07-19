@@ -41,6 +41,7 @@ let create_default = (definition, { next_id }) => {
 /**
  * @typedef {any} RelationGetterOptions
  * @typedef {any} RelationOptions
+ * @typedef {typeof import("sequelize")} SequelizeType
  */
 
 // This is necessary to prevent a total reload whenever
@@ -71,6 +72,8 @@ let validate_collection_indexes = (indexes) => {
 
   return indexes;
 };
+
+let HOOKS = ["afterFind"];
 
 /**
  * @template T
@@ -130,6 +133,7 @@ class Model {
       timestamps = true,
       indexes = [],
       scope,
+      hooks,
       ...unknown_options
     } = options;
 
@@ -188,14 +192,42 @@ class Model {
     });
 
     this.hooks = {};
+    for (let [key, value] of Object.entries(hooks || {})) {
+      this.addHook(key, null, value);
+    }
 
     sequelize._registerCollection(modelName, this);
   }
 
-  // Hooks stuff
-  static addHook(hook, onHook) {
+  /**
+   * Hook stuff
+   * @type {
+      ((hook: string, onHook: ((...args: any[]) => void)) => void) |
+      ((hook: string, hookName: string, onHook: ((...args: any[]) => void)) => void)
+     }
+   */
+  static addHook(hook, hookName, onHook) {
+    if (onHook == null) {
+      return this.addHook(hook, "", hookName);
+    }
+    if (!HOOKS.includes(hook)) {
+      throw new Error(`Hook '${hook}' not yet supported`);
+    }
     this.hooks[hook] = this.hooks[hook] || [];
-    this.hooks[hook].push(onHook);
+    this.hooks[hook].push({
+      onHook: onHook,
+      name: hookName,
+    });
+  }
+  /**
+   * Hook stuff
+   * @param {string} hook
+   * @param {any[]} args
+   */
+  static async _callHook(hook, args) {
+    for (let { name, onHook } of this.hooks[hook] || []) {
+      await onHook(...args);
+    }
   }
 
   static get database() {
@@ -552,7 +584,9 @@ class Model {
       );
     }
 
-    return items.slice(offset, limit);
+    items = items.slice(offset, limit);
+    this._callHook("afterFind", [items.map((x) => x.dataValues)]);
+    return items;
   }
 
   static async findAndCountAll(options) {
