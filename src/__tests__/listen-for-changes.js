@@ -1,3 +1,4 @@
+// @ts-nocheck
 let Sequelize = require("sequelize");
 
 const DATE_TO_USE = new Date("2016");
@@ -29,7 +30,7 @@ it("should record insert operation", async () => {
 
   expect(mutations).toEqual([
     {
-      collection_name: 'ItemWithDescription',
+      collection_name: "ItemWithDescription",
       item: {
         createdAt: new Date("2016"),
         description: "Some description",
@@ -56,12 +57,14 @@ it("should record remove operation", async () => {
 
   expect(mutations).toEqual([
     {
-      collection_name: 'ItemWithDescription',
-      items: [{
-        createdAt: new Date("2016"),
-        description: "Some description",
-        updatedAt: new Date("2016"),
-      }],
+      collection_name: "ItemWithDescription",
+      items: [
+        {
+          createdAt: new Date("2016"),
+          description: "Some description",
+          updatedAt: new Date("2016"),
+        },
+      ],
       type: "destroy",
     },
   ]);
@@ -79,21 +82,26 @@ it("should record update operation", async () => {
     mutations.push(mutation);
   });
 
-  await Item.update({
-    description: 'Some other description',
-  }, {
-    where: {},
-  });
+  await Item.update(
+    {
+      description: "Some other description",
+    },
+    {
+      where: {},
+    }
+  );
 
   expect(mutations).toEqual([
     {
-      type: 'update',
-      collection_name: 'ItemWithDescription',
-      items_to_update: [{
-        createdAt: new Date("2016"),
-        description: "Some other description",
-        updatedAt: new Date("2016"),
-      }],
+      type: "update",
+      collection_name: "ItemWithDescription",
+      items_to_update: [
+        {
+          createdAt: new Date("2016"),
+          description: "Some other description",
+          updatedAt: new Date("2016"),
+        },
+      ],
       change: {
         description: "Some other description",
       },

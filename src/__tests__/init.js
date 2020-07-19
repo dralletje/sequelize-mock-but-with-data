@@ -1,3 +1,4 @@
+// @ts-nocheck
 let Sequelize = require("sequelize");
 
 // I should move to observatory or something,

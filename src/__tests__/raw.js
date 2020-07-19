@@ -1,3 +1,4 @@
+// @ts-nocheck
 let Sequelize = require("sequelize");
 
 // I should move to observatory or something,
@@ -54,7 +55,10 @@ it("should return raw from .findOne", async () => {
   await some_users_setup({ User });
 
   let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
-  let jake_raw = await User.findOne({ where: { email: "j.strange@gmail.com" }, raw: true });
+  let jake_raw = await User.findOne({
+    where: { email: "j.strange@gmail.com" },
+    raw: true,
+  });
 
   expect(jake.dataValues).toEqual(jake_raw);
   expect(jake_raw.save).toBeUndefined();
@@ -66,7 +70,10 @@ it("should return raw from .findAll", async () => {
   await some_users_setup({ User });
 
   let [jake] = await User.findAll({ where: { email: "j.strange@gmail.com" } });
-  let [jake_raw] = await User.findAll({ where: { email: "j.strange@gmail.com" }, raw: true });
+  let [jake_raw] = await User.findAll({
+    where: { email: "j.strange@gmail.com" },
+    raw: true,
+  });
 
   expect(jake.dataValues).toEqual(jake_raw);
   expect(jake_raw.save).toBeUndefined();

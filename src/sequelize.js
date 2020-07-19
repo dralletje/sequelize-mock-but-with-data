@@ -9,6 +9,10 @@ const { Datatypes, Shallow } = require("./Datatypes");
 const { does_match_where, SequelizeOp } = require("./does_match_where");
 
 // let known = require('./known-but-better-ofcourse.js');
+/**
+ * @template Identity extends object
+ * @type {(x: Identity) => Identity}
+ */
 let known = (x) => x;
 let precondition = (condition, message) => {
   if (!condition) {
@@ -36,6 +40,7 @@ let create_default = (definition, { next_id }) => {
 
 /**
  * @typedef {any} RelationGetterOptions
+ * @typedef {any} RelationOptions
  */
 
 // This is necessary to prevent a total reload whenever
@@ -67,16 +72,27 @@ let validate_collection_indexes = (indexes) => {
   return indexes;
 };
 
+/**
+ * @template T
+ */
 class Model {
+  /**
+   * @param {T} dataValues
+   */
   constructor(dataValues) {
-    this.collection = this.constructor;
-    this.dataValues = known({ ...dataValues });
-    // this.dataValues = { ...dataValues };
+    /** @type {any} */
+    let variable_to_make_typescript_not_cry = this.constructor;
+    /** @type {typeof Model} */
+    this.collection = variable_to_make_typescript_not_cry;
+
+    // this.dataValues = known({ ...dataValues });
+    this.dataValues = { ...dataValues };
     this[Object_Reference] = dataValues;
 
     Object.assign(this, dataValues);
 
-    return known(this);
+    // return known(this);
+    return this;
   }
 
   [util.inspect.custom]() {
@@ -113,6 +129,7 @@ class Model {
       sequelize,
       timestamps = true,
       indexes = [],
+      scope,
       ...unknown_options
     } = options;
 
@@ -628,7 +645,11 @@ class Model {
     };
   }
 
-  static hasMany(foreignCollection, options) {
+  /**
+   * @param {typeof Model} foreignCollection
+   * @param {RelationOptions} options
+   */
+  static hasMany(foreignCollection, { scope = {}, ...unknown_options }) {
     let relation_key = `${this.singular}Id`;
     let getterName = foreignCollection.plural;
 
@@ -640,6 +661,8 @@ class Model {
       autoIncrement: null,
     };
 
+    // TODO Check `unknown_options`
+
     /** @param {RelationGetterOptions} options */
     this.prototype[`get${getterName}`] = async function ({
       include,
@@ -648,12 +671,13 @@ class Model {
     } = {}) {
       // `this` here is the Instance, the collection is `this.collection`
       // prettier-ignore
-      precondition(isEmpty(options), `WIP: hasMany(_, options) is not supported yet`);
+      // precondition(isEmpty(options), `WIP: hasMany(_, options) is not supported yet`);
       // prettier-ignore
       precondition(where[relation_key] == null, `Can't use 'include: { where: { ${relation_key}: ... }}' because that is the key being joined on`);
 
       let result = await foreignCollection.findAll({
         where: {
+          ...scope,
           [relation_key]: this.dataValues.id,
           ...where,
         },
