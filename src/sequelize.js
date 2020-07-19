@@ -1,6 +1,6 @@
 let inflection = require("inflection");
 // prettier-ignore
-let { upperFirst, mapValues, isEmpty, isArray, orderBy, isMatch, fromPairs, escapeRegExp } = require('lodash');
+let { upperFirst, mapValues, isEmpty, isArray, orderBy, isMatch, fromPairs, escapeRegExp, capitalize } = require('lodash');
 let util = require("util");
 let immer = require("immer").default;
 let { EventEmitter } = require("events");
@@ -132,7 +132,6 @@ class Model {
       sequelize,
       timestamps = true,
       indexes = [],
-      scope,
       hooks,
       ...unknown_options
     } = options;
@@ -151,8 +150,9 @@ class Model {
 
     this.modelName = modelName;
     this.base = sequelize;
-    this.singular = upperFirst(inflection.singularize(name));
-    this.plural = upperFirst(inflection.pluralize(name));
+    this.singular = upperFirst(inflection.singularize(modelName));
+    this.plural = upperFirst(inflection.pluralize(modelName));
+
     this.fields = {
       ...mapValues(fields, (field, key) => {
         return this.__define_field({ field, key });
@@ -485,6 +485,15 @@ class Model {
     return item;
   }
 
+  static scope({ where = {} } = {}) {
+    if (isEmpty(where)) return this;
+
+    return {
+      findAll: (options) => this.findAll({ ...options, scope: { where } }),
+      findOne: this.constructor.prototype.findOne,
+    };
+  }
+
   static async upsert(updateValues, { transaction, returning }) {
     // prettier-ignore
     precondition(returning !== true, `'returning' option not yet supported`);
@@ -541,40 +550,36 @@ class Model {
     raw = false,
     attributes = [],
     order,
+    scope = {},
     ...options
   } = {}) {
     // prettier-ignore
     precondition(isEmpty(options), `(yet) unsupported options passed to .findAll (${Object.keys(options)})`);
     precondition(isArray(attributes), `attributes needs to be an array`);
 
-    let items = (
-      await Promise.all(
-        this.database
-          .filter((item) => {
-            let does_match = does_match_where(item, where, this.fields);
-            return does_match;
-          })
-          .map((item) => {
-            if (attributes.length) {
-              let attr_only_item = {};
-              for (let key of Object.keys(item)) {
-                if (attributes.includes(key)) {
-                  attr_only_item[key] = item[key];
-                }
-              }
-              return attr_only_item;
+    let items = this.database
+      .filter((item) => {
+        if (scope.where) {
+          return does_match_where(item, scope.where, this.fields);
+        } else {
+          return true;
+        }
+      })
+      .filter((item) => {
+        return does_match_where(item, where, this.fields);
+      })
+      .map((item) => {
+        if (attributes.length) {
+          let attr_only_item = {};
+          for (let key of Object.keys(item)) {
+            if (attributes.includes(key)) {
+              attr_only_item[key] = item[key];
             }
-            return item;
-          })
-          .map(async (item) => {
-            if (raw === true) {
-              return item;
-            } else {
-              return await this.__get_item(item, { include });
-            }
-          })
-      )
-    ).filter((x) => Boolean(x));
+          }
+          return attr_only_item;
+        }
+        return item;
+      });
 
     if (order) {
       items = orderBy(
@@ -585,8 +590,19 @@ class Model {
     }
 
     items = items.slice(offset, limit);
-    this._callHook("afterFind", [items.map((x) => x.dataValues)]);
-    return items;
+    await this._callHook("afterFind", [items]);
+
+    return (
+      await Promise.all(
+        items.map(async (item) => {
+          if (raw === true) {
+            return item;
+          } else {
+            return await this.__get_item(item, { include });
+          }
+        })
+      )
+    ).filter(Boolean);
   }
 
   static async findAndCountAll(options) {
@@ -637,11 +653,14 @@ class Model {
     {
       as: getterName = foreignCollection.singular,
       constraints = true,
-      foreignKey: foreignKeyPossiblyString = `${getterName}Id`,
+      foreignKey: foreignKeyPossiblyString = `${capitalize(getterName)}Id`,
       ...unknown_options
     } = {}
   ) {
-    let { name: foreignKeyName = `${getterName}Id`, allowNull = true } =
+    let {
+      name: foreignKeyName = `${capitalize(getterName)}Id`,
+      allowNull = true,
+    } =
       typeof foreignKeyPossiblyString === "string"
         ? { name: foreignKeyPossiblyString }
         : foreignKeyPossiblyString;
@@ -654,8 +673,8 @@ class Model {
       autoIncrement: null,
     };
 
-    /** @param {RelationGetterOptions} */
-    this.prototype[`get${getterName}`] = async function ({
+    /** @type {(thing: RelationGetterOptions) => Promise<any>} */
+    this.prototype[`get${capitalize(getterName)}`] = async function ({
       transaction,
       include,
       where = {},
@@ -683,11 +702,16 @@ class Model {
    * @param {typeof Model} foreignCollection
    * @param {RelationOptions} options
    */
-  static hasMany(foreignCollection, { scope = {}, ...unknown_options }) {
-    let relation_key = `${this.singular}Id`;
-    let getterName = foreignCollection.plural;
-
-    foreignCollection.fields[relation_key] = {
+  static hasMany(
+    foreignCollection,
+    {
+      scope = {},
+      as = foreignCollection.plural,
+      foreignKey = `${this.singular}Id`,
+      ...unknown_options
+    }
+  ) {
+    foreignCollection.fields[foreignKey] = {
       type: this.fields.id.type,
       primaryKey: false,
       allowNull: true,
@@ -698,7 +722,7 @@ class Model {
     // TODO Check `unknown_options`
 
     /** @param {RelationGetterOptions} options */
-    this.prototype[`get${getterName}`] = async function ({
+    this.prototype[`get${as}`] = async function ({
       include,
       transaction,
       where = {},
@@ -707,19 +731,19 @@ class Model {
       // prettier-ignore
       // precondition(isEmpty(options), `WIP: hasMany(_, options) is not supported yet`);
       // prettier-ignore
-      precondition(where[relation_key] == null, `Can't use 'include: { where: { ${relation_key}: ... }}' because that is the key being joined on`);
+      precondition(where[foreignKey] == null, `Can't use 'include: { where: { ${foreignKey}: ... }}' because that is the key being joined on`);
 
-      let result = await foreignCollection.findAll({
+      let result = await foreignCollection.scope({ where: scope }).findAll({
         where: {
           ...scope,
-          [relation_key]: this.dataValues.id,
+          [foreignKey]: this.dataValues.id,
           ...where,
         },
         include,
         transaction,
       });
-      this.dataValues[getterName] = result;
-      this[getterName] = result;
+      this.dataValues[foreignKey] = result;
+      this[foreignKey] = result;
       return result;
     };
   }
@@ -732,7 +756,7 @@ class Model {
       type: this.fields.id.type,
     };
     /** @param {RelationGetterOptions} options */
-    this.prototype[`get${getterName}`] = async function ({
+    this.prototype[`get${capitalize(getterName)}`] = async function ({
       transaction,
       include,
       where = {},
@@ -794,7 +818,7 @@ class Model {
     }
 
     /** @param {RelationGetterOptions} options */
-    this.prototype[`get${getterName}`] = async function ({
+    this.prototype[`get${capitalize(getterName)}`] = async function ({
       include,
       transaction,
       where = {},

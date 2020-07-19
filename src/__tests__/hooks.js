@@ -50,7 +50,7 @@ let some_users_setup = async ({ User }) => {
   });
 };
 
-it("should work with simple insert", async () => {
+it("should allow modifications in a afterFind hook", async () => {
   let { User } = define();
 
   let afterFindHook = jest.fn();
@@ -62,7 +62,7 @@ it("should work with simple insert", async () => {
     }
   });
 
-  some_users_setup({ User });
+  await some_users_setup({ User });
 
   let user = await User.findOne({
     where: {

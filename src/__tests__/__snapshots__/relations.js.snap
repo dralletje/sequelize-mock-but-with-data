@@ -1,0 +1,44 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`hasMany relationship 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "followingId": "1",
+    "id": "2",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": false,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 23,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "followingId": "1",
+    "id": "3",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`hasMany relationship with scope 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 23,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "followingId": "1",
+    "id": "3",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
