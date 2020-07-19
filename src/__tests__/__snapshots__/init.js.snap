@@ -1,0 +1,227 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Using Init User.sync({ force: true }) will clear database 1`] = `Object {}`;
+
+exports[`Using Init sequelize.sync({ force: true }) will clear database 1`] = `Object {}`;
+
+exports[`Using Init should be possible to reate a user 1`] = `
+Object {
+  "__table_name__": "User",
+  "age": 22,
+  "createdAt": 2016-01-01T00:00:00.000Z,
+  "email": "m.c.dral@gmail.com",
+  "id": "1",
+  "name": "Michiel Dral",
+  "updatedAt": 2016-01-01T00:00:00.000Z,
+  "verified": true,
+}
+`;
+
+exports[`Using Init should not add createdAt and updatedAt if timestamps are disabled 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "email": "m.c.dral@gmail.com",
+    "id": "1",
+    "name": "Michiel Dral",
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "email": "o.l.beige@gmail.com",
+    "id": "2",
+    "name": "Ola Beige",
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "verified": true,
+  },
+]
+`;
+
+exports[`Using Init should only return attributes we ask for 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "name": "Michiel Dral",
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "name": "Ola Beige",
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "name": "Jake Strange",
+  },
+]
+`;
+
+exports[`Using Init should remove a selection of users 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`Using Init should remove a specific user 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "1",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "2",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`Using Init should update a selection of users 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 23,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "1",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 23,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "2",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`Using Init should update a specific user 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "1",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "2",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  Object {
+    "__table_name__": "User",
+    "age": 25,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+]
+`;
+
+exports[`Using Init should work with addHook 1`] = `Array []`;
+
+exports[`Using Init should work with notIn 1`] = `
+Array [
+  Object {
+    "__table_name__": "User",
+    "age": 24,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "verified": true,
+  },
+]
+`;
+
+exports[`Using Init sync will do nothing 1`] = `
+Object {
+  "0": Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "id": "1",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  "1": Object {
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "o.l.beige@gmail.com",
+    "id": "2",
+    "name": "Ola Beige",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+  "2": Object {
+    "__table_name__": "User",
+    "age": 24,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "j.strange@gmail.com",
+    "id": "3",
+    "name": "Jake Strange",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": true,
+  },
+}
+`;

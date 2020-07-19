@@ -25,7 +25,7 @@ let define = (options = {}) => {
       age: Sequelize.INTEGER,
       verified: Sequelize.BOOLEAN,
     },
-    { options, sequelize }
+    { ...options, sequelize, modelName: "User" }
   );
 
   return { sequelize, User };

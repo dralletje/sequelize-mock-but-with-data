@@ -34,6 +34,10 @@ let create_default = (definition, { next_id }) => {
   return null;
 };
 
+/**
+ * @typedef {any} RelationGetterOptions
+ */
+
 // This is necessary to prevent a total reload whenever
 // the module that creates the sequelize gets reloaded in my development environment.
 // I desperately need to fix this in my development setup, but for now this is here 😅
@@ -52,9 +56,20 @@ let root_module = find_parent_module(module);
 root_module.database_cache = root_module.database_cache || {};
 let database_cache = root_module.database_cache;
 
-class DefaultModel {
-  constructor(dataValues, collection) {
-    this.collection = collection;
+let validate_collection_indexes = (indexes) => {
+  for (let index of indexes) {
+    let { unique, fields, ...unknown_options } = index;
+
+    // prettier-ignore
+    precondition(isEmpty(unknown_options), `WIP: Index property not yet understood, only .unique and .fields (got ${JSON.stringify(unknown_options)})`);
+  }
+
+  return indexes;
+};
+
+class Model {
+  constructor(dataValues) {
+    this.collection = this.constructor;
     this.dataValues = known({ ...dataValues });
     // this.dataValues = { ...dataValues };
     this[Object_Reference] = dataValues;
@@ -66,14 +81,14 @@ class DefaultModel {
 
   [util.inspect.custom]() {
     return {
-      __table_name__: this.collection.name,
+      __table_name__: this.collection.modelName,
       ...this.dataValues,
     };
   }
 
   toJSON() {
     return {
-      __table_name__: this.collection.name,
+      __table_name__: this.collection.modelName,
       ...this.dataValues,
     };
   }
@@ -87,31 +102,19 @@ class DefaultModel {
     throw new Error(`Try using 'Model.destroy(...)' instead of 'instance.destroy()'`);
   }
 
-  // get then() {
-  //   return undefined;
-  // }
-  // get asymmetricMatch() {
-  //   return undefined;
-  // }
-  // get $$typeof() {
-  //   return undefined;
-  // }
-}
-
-let validate_collection_indexes = (indexes) => {
-  for (let index of indexes) {
-    let { unique, fields, ...unknown_options } = index;
-
-    // prettier-ignore
-    precondition(isEmpty(unknown_options), `WIP: Index property not yet understood, only .unique and .fields (got ${JSON.stringify(unknown_options)})`);
-  }
-
-  return indexes;
-};
-
-class Collection {
-  constructor({ name, fields, options = {}, next_id, database }) {
-    let { timestamps = true, indexes = [], ...unknown_options } = options;
+  // Static methods from here on
+  /**
+   * @param {any} fields
+   * @param {any} options
+   */
+  static init(fields, options) {
+    let {
+      modelName = this.modelName,
+      sequelize,
+      timestamps = true,
+      indexes = [],
+      ...unknown_options
+    } = options;
 
     // prettier-ignore
     precondition(isEmpty(unknown_options), `WIP: Options not yet... understood (${JSON.stringify(unknown_options)})`);
@@ -121,12 +124,12 @@ class Collection {
 
     this.indexes = validate_collection_indexes(indexes);
 
-    if (database.mock == null) {
-      console.log(`database:`, database.mock);
+    if (sequelize.mock == null) {
+      console.log(`database:`, sequelize.mock);
     }
 
-    this.name = name;
-    this.base = database;
+    this.modelName = modelName;
+    this.base = sequelize;
     this.singular = upperFirst(inflection.singularize(name));
     this.plural = upperFirst(inflection.pluralize(name));
     this.fields = {
@@ -149,49 +152,62 @@ class Collection {
     }
 
     // Internal method
-    this.next_id = next_id;
+    this.next_id = () => {
+      let next_id = sequelize.data.next_id_counter;
+      sequelize.data.next_id_counter = sequelize.data.next_id_counter + 1;
+      return next_id;
+    };
     this.options = options;
 
-    this.Model_Class = class Model extends DefaultModel {};
-    Object.defineProperty(this.Model_Class, "name", {
+    Object.defineProperty(this.prototype, "name", {
       configurable: true,
       writable: true,
       value: `${this.singular}Instance`,
     });
-    Object.defineProperty(this.Model_Class, "options", {
+    Object.defineProperty(this, "options", {
       configurable: true,
       writable: true,
       value: this.options,
     });
+
+    this.hooks = {};
+
+    sequelize._registerCollection(modelName, this);
   }
 
-  get database() {
-    let rows = this.base.data.collections.get(this.name);
+  // Hooks stuff
+  static addHook(hook, onHook) {
+    this.hooks[hook] = this.hooks[hook] || [];
+    this.hooks[hook].push(onHook);
+  }
+
+  static get database() {
+    let rows = this.base.data.collections.get(this.modelName);
     return rows;
   }
-  set database(value) {
-    this.base.data.collections.set(this.name, value);
+  static set database(value) {
+    this.base.data.collections.set(this.modelName, value);
   }
 
-  async sync({ force = false } = {}) {
+  static async sync({ force = false } = {}) {
     if (force === true) {
       this.database = [];
     }
     return true;
   }
 
-  [util.inspect.custom]() {
+  static [util.inspect.custom]() {
     return {
-      name: this.name,
+      name: this.modelName,
       items_in_database: this.database.length,
       // fields: Object.keys(this.fields),
     };
   }
 
-  __define_field({ key, field }) {
+  static __define_field({ key, field }) {
     // TODO Validation?
     // prettier-ignore
-    precondition(field != null, `Unknown type set on field '${key}' of model '${this.name}'`);
+    precondition(field != null, `Unknown type set on field '${key}' of model '${this.modelName}'`);
     if (field[Shallow] === true) {
       // Shorthand with only type definition, so need to expand
       return {
@@ -214,22 +230,22 @@ class Collection {
     }
   }
 
-  __emit(mutation) {
+  static __emit(mutation) {
     this.base.mock.emit("mutation", {
       ...mutation,
-      collection_name: this.name,
+      collection_name: this.modelName,
     });
   }
 
-  async __get_item(
+  static async __get_item(
     dataValues,
-    { include: models_to_include = [], transaction } = {}
+    { include: models_to_include = [], transaction = null } = {}
   ) {
     if (dataValues == null) {
       return null;
     }
 
-    let instance = new this.Model_Class(dataValues, this);
+    let instance = new this(dataValues);
     for (let include of models_to_include) {
       if (include.as) {
         // prettier-ignore
@@ -279,16 +295,16 @@ class Collection {
     return instance;
   }
 
-  async bulkCreate(items) {
+  static async bulkCreate(items) {
     return Promise.all(items.map((item) => this.create(item)));
   }
 
-  async create(item) {
+  static async create(item, { transaction = null } = {}) {
     let unknown_keys = Object.keys(item).filter(
       (key) => this.fields[key] == null
     );
     // prettier-ignore
-    precondition(unknown_keys.length === 0, `Unknown fields found in ${this.name}.create(): ${unknown_keys.join(', ')}`);
+    precondition(unknown_keys.length === 0, `Unknown fields found in ${this.modelName}.create(): ${unknown_keys.join(', ')}`);
 
     // Validate options
     let object = mapValues(this.fields, (definition, key) => {
@@ -310,7 +326,7 @@ class Collection {
           return null;
         } else {
           // prettier-ignore
-          precondition(definition.type != null, `Field '${key}' on '${this.name}' has invalid type`);
+          precondition(definition.type != null, `Field '${key}' on '${this.modelName}' has invalid type`);
 
           return definition.type.cast ? definition.type.cast(value) : value;
         }
@@ -330,7 +346,7 @@ class Collection {
     return await this.__get_item(object);
   }
 
-  async destroy({ where, transaction } = {}) {
+  static async destroy({ where = {}, transaction = null } = {}) {
     let old_database = this.database;
     let items_to_remove = await this.findAll({
       where: where,
@@ -350,7 +366,7 @@ class Collection {
     return old_database.length - this.database.length;
   }
 
-  async update(updateValues, { where, transaction } = {}) {
+  static async update(updateValues, { where = {}, transaction = null } = {}) {
     precondition(
       where != null,
       `You can't specify an update without a where clause`
@@ -371,7 +387,7 @@ class Collection {
             // prettier-ignore
             precondition(definition != null, `Unknown key '${key}' found`);
             // prettier-ignore
-            precondition(definition.type != null, `Field '${key}' on '${this.name}' has invalid type`);
+            precondition(definition.type != null, `Field '${key}' on '${this.modelName}' has invalid type`);
 
             value =
               value == null
@@ -407,7 +423,7 @@ class Collection {
     return [updated_rows.length, updated_rows];
   }
 
-  _identifier(item) {
+  static _identifier(item) {
     let fields = Object.entries(this.fields);
 
     let primary_key = fields.find(([key, type]) => type.primaryKey === true);
@@ -420,7 +436,7 @@ class Collection {
     return item;
   }
 
-  async upsert(updateValues, { transaction, returning }) {
+  static async upsert(updateValues, { transaction, returning }) {
     // prettier-ignore
     precondition(returning !== true, `'returning' option not yet supported`);
 
@@ -428,7 +444,7 @@ class Collection {
       ([_, field]) => field.unique === true
     );
     // prettier-ignore
-    precondition(unique_fields.length !== 0, `No unique fields defined on model '${this.name}'`);
+    precondition(unique_fields.length !== 0, `No unique fields defined on model '${this.modelName}'`);
 
     let unique_updates = unique_fields
       .filter(([key, _]) => {
@@ -461,12 +477,13 @@ class Collection {
     }
   }
 
-  async count(options) {
+  static async count(options) {
     let items = await this.findAll(options);
     return items.length;
   }
 
-  async findAll({
+  /** @param {any} options */
+  static async findAll({
     where,
     transaction,
     include,
@@ -521,7 +538,7 @@ class Collection {
     return items.slice(offset, limit);
   }
 
-  async findAndCountAll(options) {
+  static async findAndCountAll(options) {
     let real_options = {
       ...options,
       offset: 0,
@@ -539,21 +556,21 @@ class Collection {
     };
   }
 
-  async findOne(options) {
+  static async findOne(options) {
     // TODO Notice when there are multiple matches here, as you normally don't want that
     let items = await this.findAll(options);
     return items[0];
   }
 
-  async find(options) {
+  static async find(options) {
     return this.findOne(options);
   }
 
-  async findById(id, options = {}) {
+  static async findById(id, options = {}) {
     return this.findOne({ ...options, where: { id, ...options.where } });
   }
 
-  async findOrCreate(options) {
+  static async findOrCreate(options) {
     // TODO Need to check only unique keys here
     let res = await this.findOne(options);
 
@@ -564,23 +581,19 @@ class Collection {
     return [res];
   }
 
-  belongsTo(
+  static belongsTo(
     foreignCollection,
     {
       as: getterName = foreignCollection.singular,
       constraints = true,
-      foreignKey = `${getterName}Id`,
+      foreignKey: foreignKeyPossiblyString = `${getterName}Id`,
       ...unknown_options
     } = {}
   ) {
-    if (typeof foreignKey === "string") {
-      foreignKey = { name: foreignKey };
-    }
-
-    let {
-      name: foreignKeyName = `${getterName}Id`,
-      allowNull = true,
-    } = foreignKey;
+    let { name: foreignKeyName = `${getterName}Id`, allowNull = true } =
+      typeof foreignKeyPossiblyString === "string"
+        ? { name: foreignKeyPossiblyString }
+        : foreignKeyPossiblyString;
 
     this.fields[foreignKeyName] = {
       type: foreignCollection.fields.id.type,
@@ -589,7 +602,9 @@ class Collection {
       defaultValue: null,
       autoIncrement: null,
     };
-    this.Model_Class.prototype[`get${getterName}`] = async function ({
+
+    /** @param {RelationGetterOptions} */
+    this.prototype[`get${getterName}`] = async function ({
       transaction,
       include,
       where = {},
@@ -613,7 +628,7 @@ class Collection {
     };
   }
 
-  hasMany(foreignCollection, options) {
+  static hasMany(foreignCollection, options) {
     let relation_key = `${this.singular}Id`;
     let getterName = foreignCollection.plural;
 
@@ -624,7 +639,9 @@ class Collection {
       defaultValue: null,
       autoIncrement: null,
     };
-    this.Model_Class.prototype[`get${getterName}`] = async function ({
+
+    /** @param {RelationGetterOptions} options */
+    this.prototype[`get${getterName}`] = async function ({
       include,
       transaction,
       where = {},
@@ -649,14 +666,15 @@ class Collection {
     };
   }
 
-  hasOne(foreignCollection, options) {
+  static hasOne(foreignCollection, options) {
     let getterName = foreignCollection.singular;
     let relation_key = `${this.singular}Id`;
 
     foreignCollection.fields[relation_key] = {
       type: this.fields.id.type,
     };
-    this.Model_Class.prototype[`get${getterName}`] = async function ({
+    /** @param {RelationGetterOptions} options */
+    this.prototype[`get${getterName}`] = async function ({
       transaction,
       include,
       where = {},
@@ -681,7 +699,7 @@ class Collection {
     };
   }
 
-  belongsToMany(foreignCollection, { through, ...unknown_options }) {
+  static belongsToMany(foreignCollection, { through, ...unknown_options }) {
     // prettier-ignore
     precondition(through != null, `No 'through' property given to belongsToMany`);
 
@@ -717,7 +735,8 @@ class Collection {
       };
     }
 
-    this.Model_Class.prototype[`get${getterName}`] = async function ({
+    /** @param {RelationGetterOptions} options */
+    this.prototype[`get${getterName}`] = async function ({
       include,
       transaction,
       where = {},
@@ -788,29 +807,24 @@ class Sequelize {
   }
 
   define(name, fields, options) {
+    let MyModel = class extends Model {};
+    MyModel.init(fields, { modelName: name, sequelize: this, ...options });
+    return MyModel;
+  }
+
+  _registerCollection(name, Model) {
     // prettier-ignore
     precondition(this.mode === 'definition', `Can't add model because database is in ${this.mode} mode`);
     // prettier-ignore
     precondition(!this.definitions.has(name), `Model '${name}' already defined`);
 
-    this.next_index_counter;
     if (this.data.collections.has(name) === false) {
       this.data.collections.set(name, []);
     }
-    let collection = new Collection({
-      name: name,
-      fields: fields,
-      options: options,
-      database: this,
-      next_id: () => {
-        let next_id = this.data.next_id_counter;
-        this.data.next_id_counter = this.data.next_id_counter + 1;
-        return next_id;
-      },
-    });
-    this.definitions.set(name, collection);
 
-    return collection;
+    this.definitions.set(name, Model);
+
+    return Model;
   }
 
   async authenticate() {
@@ -851,6 +865,7 @@ class Sequelize {
 }
 
 Sequelize.Op = SequelizeOp;
+Sequelize.Model = Model;
 
 let OperationSymbol = Symbol("Operation type");
 
