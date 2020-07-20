@@ -197,6 +197,8 @@ class Model {
     }
 
     sequelize._registerCollection(modelName, this);
+
+    return this;
   }
 
   /**
