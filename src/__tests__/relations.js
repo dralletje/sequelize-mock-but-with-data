@@ -1,5 +1,6 @@
 // @ts-nocheck
 let Sequelize = require("sequelize");
+const sequelize = require("sequelize");
 
 // I should move to observatory or something,
 // but this works for now
@@ -127,4 +128,40 @@ it("hasMany relationship with scope", async () => {
   let followers = await user.getFollowers();
 
   expect(followers).toMatchSnapshot();
+});
+
+it.only("has a cool belongsTo", async () => {
+  let { User } = define();
+
+  await some_users_setup({ User });
+
+  let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
+  let michiel = await User.findOne({ where: { email: "m.c.dral@gmail.com" } });
+
+  await User.update(
+    { id: jake.id },
+    {
+      followingId: michiel.id,
+    }
+  );
+
+  let user = await User.findOne({
+    where: {
+      email: "o.l.beige@gmail.com",
+    },
+    include: [
+      {
+        as: "Follower",
+        model: User,
+        include: [
+          {
+            as: "Follower",
+            model: User,
+          },
+        ],
+      },
+    ],
+  });
+
+  expect(user).toMatchSnapshot();
 });

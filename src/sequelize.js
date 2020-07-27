@@ -300,7 +300,10 @@ class Model {
     for (let include of models_to_include) {
       if (include.as) {
         // prettier-ignore
-        precondition(instance[`get${include.as}`] != null, `No getter/relation defined for '${include.as}'`);
+        precondition(
+          instance[`get${include.as}`] != null,
+          `No getter/relation defined for '${include.as}'`
+        );
         // prettier-ignore
         precondition(typeof instance[`get${include.as}`] === 'function', `Getter '${include.as}' is not actually a function... which is very weird`);
 
@@ -655,14 +658,11 @@ class Model {
     {
       as: getterName = foreignCollection.singular,
       constraints = true,
-      foreignKey: foreignKeyPossiblyString = `${capitalize(getterName)}Id`,
+      foreignKey: foreignKeyPossiblyString = `${getterName}Id`,
       ...unknown_options
     } = {}
   ) {
-    let {
-      name: foreignKeyName = `${capitalize(getterName)}Id`,
-      allowNull = true,
-    } =
+    let { name: foreignKeyName = `${getterName}Id`, allowNull = true } =
       typeof foreignKeyPossiblyString === "string"
         ? { name: foreignKeyPossiblyString }
         : foreignKeyPossiblyString;
@@ -676,7 +676,7 @@ class Model {
     };
 
     /** @type {(thing: RelationGetterOptions) => Promise<any>} */
-    this.prototype[`get${capitalize(getterName)}`] = async function ({
+    this.prototype[`get${getterName}`] = async function ({
       transaction,
       include,
       where = {},
@@ -744,8 +744,8 @@ class Model {
         include,
         transaction,
       });
-      this.dataValues[foreignKey] = result;
-      this[foreignKey] = result;
+      this.dataValues[as] = result;
+      this[as] = result;
       return result;
     };
   }
@@ -758,7 +758,7 @@ class Model {
       type: this.fields.id.type,
     };
     /** @param {RelationGetterOptions} options */
-    this.prototype[`get${capitalize(getterName)}`] = async function ({
+    this.prototype[`get${getterName}`] = async function ({
       transaction,
       include,
       where = {},
@@ -820,7 +820,7 @@ class Model {
     }
 
     /** @param {RelationGetterOptions} options */
-    this.prototype[`get${capitalize(getterName)}`] = async function ({
+    this.prototype[`get${getterName}`] = async function ({
       include,
       transaction,
       where = {},

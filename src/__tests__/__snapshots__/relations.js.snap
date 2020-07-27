@@ -1,5 +1,41 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`has a cool belongsTo 1`] = `
+Object {
+  "Follower": Object {
+    "Follower": Object {
+      "__table_name__": "User",
+      "age": 24,
+      "createdAt": 2016-01-01T00:00:00.000Z,
+      "email": "j.strange@gmail.com",
+      "followingId": null,
+      "id": "1",
+      "name": "Jake Strange",
+      "updatedAt": 2016-01-01T00:00:00.000Z,
+      "verified": true,
+    },
+    "__table_name__": "User",
+    "age": 22,
+    "createdAt": 2016-01-01T00:00:00.000Z,
+    "email": "m.c.dral@gmail.com",
+    "followingId": "1",
+    "id": "1",
+    "name": "Michiel Dral",
+    "updatedAt": 2016-01-01T00:00:00.000Z,
+    "verified": false,
+  },
+  "__table_name__": "User",
+  "age": 23,
+  "createdAt": 2016-01-01T00:00:00.000Z,
+  "email": "o.l.beige@gmail.com",
+  "followingId": "1",
+  "id": "1",
+  "name": "Ola Beige",
+  "updatedAt": 2016-01-01T00:00:00.000Z,
+  "verified": true,
+}
+`;
+
 exports[`hasMany relationship 1`] = `
 Array [
   Object {
