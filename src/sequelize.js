@@ -711,7 +711,7 @@ class Model {
       as = foreignCollection.plural,
       foreignKey = `${this.singular}Id`,
       ...unknown_options
-    }
+    } = {}
   ) {
     foreignCollection.fields[foreignKey] = {
       type: this.fields.id.type,
@@ -892,6 +892,9 @@ class Sequelize {
 
   define(name, fields, options) {
     let MyModel = class extends Model {};
+    Object.defineProperty(MyModel, "name", {
+      value: name,
+    });
     MyModel.init(fields, { modelName: name, sequelize: this, ...options });
     return MyModel;
   }

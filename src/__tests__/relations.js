@@ -130,7 +130,43 @@ it("hasMany relationship with scope", async () => {
   expect(followers).toMatchSnapshot();
 });
 
-it.only("has a cool belongsTo", async () => {
+it("has a cool belongsTo", async () => {
+  let { User } = define();
+
+  await some_users_setup({ User });
+
+  let jake = await User.findOne({ where: { email: "j.strange@gmail.com" } });
+  let michiel = await User.findOne({ where: { email: "m.c.dral@gmail.com" } });
+
+  await User.update(
+    { id: jake.id },
+    {
+      followingId: michiel.id,
+    }
+  );
+
+  let user = await User.findOne({
+    where: {
+      email: "o.l.beige@gmail.com",
+    },
+    include: [
+      {
+        as: "Follower",
+        model: User,
+        include: [
+          {
+            as: "Follower",
+            model: User,
+          },
+        ],
+      },
+    ],
+  });
+
+  expect(user).toMatchSnapshot();
+});
+
+it("has cool stuf", async () => {
   let { User } = define();
 
   await some_users_setup({ User });
