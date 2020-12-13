@@ -211,9 +211,7 @@ class DefaultModel {
 
 let generate_like_regex = (pattern) => {
   return new RegExp(
-    escapeRegExp(pattern)
-      .replace(/%/g, ".*")
-      .replace(/_/g, ".")
+    escapeRegExp(pattern).replace(/%/g, ".*").replace(/_/g, ".")
   );
 };
 
@@ -887,7 +885,7 @@ class Collection {
       defaultValue: null,
       autoIncrement: null,
     };
-    this.Model_Class.prototype[`get${getterName}`] = async function({
+    this.Model_Class.prototype[`get${getterName}`] = async function ({
       transaction,
       include,
       where = {},
@@ -922,7 +920,7 @@ class Collection {
       defaultValue: null,
       autoIncrement: null,
     };
-    this.Model_Class.prototype[`get${getterName}`] = async function({
+    this.Model_Class.prototype[`get${getterName}`] = async function ({
       include,
       transaction,
       where = {},
@@ -954,7 +952,7 @@ class Collection {
     foreignCollection.fields[relation_key] = {
       type: this.fields.id.type,
     };
-    this.Model_Class.prototype[`get${getterName}`] = async function({
+    this.Model_Class.prototype[`get${getterName}`] = async function ({
       transaction,
       include,
       where = {},
@@ -1015,7 +1013,7 @@ class Collection {
       };
     }
 
-    this.Model_Class.prototype[`get${getterName}`] = async function({
+    this.Model_Class.prototype[`get${getterName}`] = async function ({
       include,
       transaction,
       where = {},
@@ -1033,16 +1031,18 @@ class Collection {
         transaction,
       });
 
-      let results = other_ids.map(async (id) => {
-        return await foreignCollection.findOne({
-          where: {
-            ...where,
-            id: id.id,
-          },
-          transaction,
-          include,
-        });
-      });
+      let results = await Promise.all(
+        other_ids.map(async (id) => {
+          return await foreignCollection.findOne({
+            where: {
+              ...where,
+              id: id[`${foreignCollection.singular}Id`],
+            },
+            transaction,
+            include,
+          });
+        })
+      );
       this.dataValues[getterName] = results;
       this[getterName] = results;
       return results;
